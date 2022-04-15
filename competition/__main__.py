@@ -1,5 +1,5 @@
 import argparse
-
+from competition.solution_b import solution_b
 
 def get_args():
     r"""Parse command line arguments."""
@@ -8,7 +8,13 @@ def get_args():
         prog="python -m competition",
         description="Competition",
     )
-    # parse arguments
+
+    #subparsers
+
+    subparsers = parser.add_subparsers(help="sub-commands help")
+    solution_b.configure_subparsers(subparsers)
+
+    #parsing arguments
     parsed_args = parser.parse_args()
 
     return parsed_args
@@ -16,7 +22,7 @@ def get_args():
 
 def main(args):
     r"""Main function"""
-
+    args.func(args,)
 
 if __name__ == "__main__":
     main(get_args())
