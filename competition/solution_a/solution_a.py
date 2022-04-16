@@ -8,29 +8,8 @@ import matplotlib.pyplot as plt
 from torchvision.io import read_image
 from torch.utils.data import DataLoader
 from sys import path
-from ..solution_a import utils
-
-
-class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
-        self.img_labels = pd.read_csv(annotations_file)
-        self.img_dir = img_dir
-        self.transform = transform
-        self.target_transform = target_transform
-
-    def __len__(self):
-        return len(self.img_labels)
-
-    def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
-        image = read_image(img_path)
-        label = self.img_labels.iloc[idx, 1]
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            label = self.target_transform(label)
-        return image, label
-
+from competition.utils import utils
+from competition.utils.CustomDataset import CustomImageDataset
 
 def configure_subparsers(subparsers):
     r"""Configure a new subparser for our first solution of the competition.
