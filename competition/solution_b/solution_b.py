@@ -21,7 +21,7 @@ def configure_subparsers(subparsers):
     parser = subparsers.add_parser(
         "solution_b", help="Train and Test the Solution B model")
     parser.add_argument(
-        "--test", action='store_true', default=False, help="Only test the model"
+        "--test", action='store', help="Only test the model with the given weight file", type=str
     )
 
     parser.set_defaults(func=main)
@@ -73,10 +73,8 @@ class AE(torch.nn.Module):
 
 def train():
 
-    print("Loading the data")
-
     train_path = utils.get_path("../../datasets/mnist/training/")
-    train_ann = utils.get_path("../../datasets/mnist/labels_train.csv")
+    train_ann = utils.get_path("../../datasets/mnist/training/labels_train.csv")
 
     training_data = CustomImageDataset(
         annotations_file=train_ann,
@@ -90,23 +88,22 @@ def train():
     train_loder = dataloader.DataLoader(
         training_data, batch_size=32, shuffle=True)
 
-    print("Training of the autoencoder...")
 
     epochs = 1
 
     loss_function = torch.nn.MSELoss()
 
-    AE_model = AE()
-    lr = 0.01
+    model = AE()
+    lr = 0.001
 
     optimizer = torch.optim.Adam(
-        AE_model.parameters(), lr=lr, weight_decay=1e-8)
+        model.parameters(), lr=lr, weight_decay=1e-8)
 
     device = torch.device("cpu")
 
-    AE_model.to(device=device)
+    model.to(device=device)
 
-    AE_model.train()
+    model.train()
 
     for i in range(epochs):
         print(f"Epoch {i}")
@@ -114,29 +111,25 @@ def train():
             image, _ = data
             optimizer.zero_grad()
 
-            output = AE_model(image)
+            output = model(image)
             loss = loss_function(image, output)
             loss.backward()
             optimizer.step()
 
             if(i % 100 == 0):
-                print(loss.backward)
+                print(f"Loss after {i} iterations: {loss.item()}")
 
     path_model = utils.get_path(
         f"../../models/solution_b/solution_b-{str(int(time()))}.pth")
-    torch.save(AE_model.state_dict(), path_model)
-    print("Finished Training")
+    torch.save(model.state_dict(), path_model)
+
     return path_model
 
 
-def evaluate(path_model, classes):
-    activation = {}
-    def get_activation(name):
-        def hook(model, input, output):
-            activation[name] = output.detach()
-        return hook
+def evaluate(path_model):
 
-    print("Starting evaluation...")
+    #re-think this function more clearly
+
     test_ann = utils.get_path(
         "../../datasets/mnist/validation/query/labels_query.csv")
     test_path = utils.get_path("../../datasets/mnist/validation/query")
@@ -153,30 +146,32 @@ def evaluate(path_model, classes):
     test_dataloader = dataloader.DataLoader(
         test_data, batch_size=9, shuffle=True)
     dataiter = iter(test_dataloader)
-    images, labels = dataiter.next()
+    images, _ = dataiter.next()
 
-    net = AE()
-    net.load_state_dict(torch.load(path_model))
-    net.fc3.register_forward_hook(get_activation('fc3'))
-    outputs = net(images)
-    for output in activation['fc3'][1:]:
-        difference = activation['fc3'][0] - output
-        print(torch.norm(difference))
+    model = AE()
+    model.load_state_dict(torch.load(path_model))
+
+    global decoded_outputs
+    def hook_function(model,inputs,outputs):
+        global decoded_outputs
+        decoded_outputs = outputs
+
+    model.fc3.register_forward_hook(hook_function)
+    _ = model(images)
+
+    for output in decoded_outputs[1:]:
+        difference = decoded_outputs[0] - output
+        print(torch.norm(difference).item())
     utils.imshow(tv.utils.make_grid(images))
 
 
 
 def main(args):
-    print("Main function of Solution B")
-    utils.createLabelsCsv("../../datasets/mnist/training/", "labels_train.csv")
-    classes = utils.createLabelsCsv(
-        "../../datasets/mnist/validation/query", "labels_query.csv")
 
-    print("Parameters given:")
-    for p, v in zip(args.__dict__.keys(), args.__dict__.values()):
-        print("\t{}: {}".format(p, v))
-    if(not(args.test)):
+    if(args.test != None):
+        path_model = utils.get_path(
+                f"../../models/solution_b/solution_b-{args.test}.pth")
+    else:
         path_model = train()
-    path_model = utils.get_path(
-        "../../models/solution_b/solution_b-1650123658.pth")
-    evaluate(path_model, classes)
+
+    evaluate(path_model)
