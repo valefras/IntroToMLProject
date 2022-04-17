@@ -1,6 +1,6 @@
 import argparse
-from competition.solution_b import solution_b
-from competition.solution_a import solution_a
+from competition.AE import AE
+from competition.classifier import classifier
 
 def get_args():
     r"""Parse command line arguments."""
@@ -13,8 +13,8 @@ def get_args():
     #subparsers
 
     subparsers = parser.add_subparsers(help="sub-commands help")
-    solution_b.configure_subparsers(subparsers)
-    solution_a.configure_subparsers(subparsers)
+    AE.configure_subparsers(subparsers)
+    classifier.configure_subparsers(subparsers)
 
     #parsing arguments
     parsed_args = parser.parse_args()

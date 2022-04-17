@@ -19,7 +19,7 @@ def configure_subparsers(subparsers):
   Args:
   """
     parser = subparsers.add_parser(
-        "solution_b", help="Train and Test the Solution B model")
+        "AE", help="Train and Test the AE model")
     parser.add_argument(
         "--test", action='store', help="Only test the model with the given weight file", type=str
     )
@@ -120,7 +120,7 @@ def train():
                 print(f"Loss after {i} iterations: {loss.item()}")
 
     path_model = utils.get_path(
-        f"../../models/solution_b/solution_b-{str(int(time()))}.pth")
+        f"../../models/AE/AE-{str(int(time()))}.pth")
     torch.save(model.state_dict(), path_model)
 
     return path_model
@@ -170,7 +170,7 @@ def main(args):
 
     if(args.test != None):
         path_model = utils.get_path(
-                f"../../models/solution_b/solution_b-{args.test}.pth")
+                f"../../models/AE/AE-{args.test}.pth")
     else:
         path_model = train()
 

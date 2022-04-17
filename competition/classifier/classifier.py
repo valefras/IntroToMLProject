@@ -22,7 +22,7 @@ def configure_subparsers(subparsers):
     Args:
     """
     parser = subparsers.add_parser(
-        "solution_a", help="Train the Solution A model")
+        "classifier", help="Train the classifier model")
     parser.add_argument(
         "--test", action='store_true', default=False, help="Test the model"
     )
