@@ -74,7 +74,8 @@ class AE(torch.nn.Module):
 def train():
 
     train_path = utils.get_path("../../datasets/mnist/training/")
-    train_ann = utils.get_path("../../datasets/mnist/training/labels_train.csv")
+    train_ann = utils.get_path(
+        "../../datasets/mnist/training/labels_train.csv")
 
     training_data = CustomImageDataset(
         annotations_file=train_ann,
@@ -87,7 +88,6 @@ def train():
 
     train_loder = dataloader.DataLoader(
         training_data, batch_size=32, shuffle=True)
-
 
     epochs = 1
 
@@ -103,7 +103,7 @@ def train():
 
     model.to(device=device)
 
-    model.train()
+    model.train() # missing function?
 
     for i in range(epochs):
         print(f"Epoch {i}")
@@ -128,7 +128,7 @@ def train():
 
 def evaluate(path_model):
 
-    #re-think this function more clearly
+    # re-think this function more clearly
 
     test_ann = utils.get_path(
         "../../datasets/mnist/validation/query/labels_query.csv")
@@ -152,7 +152,8 @@ def evaluate(path_model):
     model.load_state_dict(torch.load(path_model))
 
     global decoded_outputs
-    def hook_function(model,inputs,outputs):
+
+    def hook_function(model, inputs, outputs):
         global decoded_outputs
         decoded_outputs = outputs
 
@@ -165,12 +166,14 @@ def evaluate(path_model):
     utils.imshow(tv.utils.make_grid(images))
 
 
-
 def main(args):
+    utils.createLabelsCsv("../../datasets/mnist/training/", "labels_train.csv")
+    utils.createLabelsCsv(
+        "../../datasets/mnist/validation/query", "labels_query.csv")
 
     if(args.test != None):
         path_model = utils.get_path(
-                f"../../models/AE/AE-{args.test}.pth")
+            f"../../models/AE/AE-{args.test}.pth")
     else:
         path_model = train()
 
