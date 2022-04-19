@@ -28,8 +28,10 @@ def configure_subparsers(subparsers):
 
 
 class AE(torch.nn.Module):
-    def __init__(self):
+    def __init__(self,train):
         super().__init__()
+
+        self.is_training = train
 
         self.conv1 = torch.nn.Conv2d(1, 5, 5)
         self.pool1 = torch.nn.MaxPool2d(2, 2, return_indices=True)
@@ -60,6 +62,9 @@ class AE(torch.nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
+
+        if(not(self.is_training)):
+            return x
 
         x = F.relu(self.fc4(x))
         x = F.relu(self.fc5(x))
@@ -93,7 +98,7 @@ def train():
 
     loss_function = torch.nn.MSELoss()
 
-    model = AE()
+    model = AE(train=True)
     lr = 0.001
 
     optimizer = torch.optim.Adam(
@@ -148,19 +153,13 @@ def evaluate(path_model):
     dataiter = iter(test_dataloader)
     images, _ = dataiter.next()
 
-    model = AE()
+    model = AE(train=False)
     model.load_state_dict(torch.load(path_model))
 
-    global decoded_outputs
-    def hook_function(model,inputs,outputs):
-        global decoded_outputs
-        decoded_outputs = outputs
+    outputs = model(images)
 
-    model.fc3.register_forward_hook(hook_function)
-    _ = model(images)
-
-    for output in decoded_outputs[1:]:
-        difference = decoded_outputs[0] - output
+    for output in outputs[1:]:
+        difference = outputs[0] - output
         print(torch.norm(difference).item())
     utils.imshow(tv.utils.make_grid(images))
 
