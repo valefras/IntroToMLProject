@@ -6,7 +6,7 @@ from competition.utils.CustomDataset import CustomImageDataset
 import torchvision as tv
 from torch.nn import functional as F
 from time import time
-
+from tqdm import tqdm
 
 def configure_subparsers(subparsers):
     r"""Configure a new subparser for our second solution of the competition.
@@ -28,7 +28,7 @@ def configure_subparsers(subparsers):
 
 
 class AE(torch.nn.Module):
-    def __init__(self,train):
+    def __init__(self,train=True):
         super().__init__()
 
         self.is_training = train
@@ -98,7 +98,7 @@ def train():
 
     loss_function = torch.nn.MSELoss()
 
-    model = AE(train=True)
+    model = AE()
     lr = 0.001
 
     optimizer = torch.optim.Adam(
@@ -110,9 +110,10 @@ def train():
 
     model.train()
 
+    running_loss = 0
+
     for i in range(epochs):
-        print(f"Epoch {i}")
-        for i, data in enumerate(train_loder):
+        for  data in tqdm(train_loder,desc=f"{i} Epoch: ",ascii="         #"):
             image, _ = data
             optimizer.zero_grad()
 
@@ -121,9 +122,8 @@ def train():
             loss.backward()
             optimizer.step()
 
-            if(i % 100 == 0):
-                print(f"Loss after {i} iterations: {loss.item()}")
-
+            running_loss += loss.item()
+        print(f"Loss at {i+1} Epoch: {running_loss/len(train_loder)}")
     path_model = utils.get_path(
         f"../../models/AE/AE-{str(int(time()))}.pth")
     torch.save(model.state_dict(), path_model)
