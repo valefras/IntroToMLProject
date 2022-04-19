@@ -108,7 +108,7 @@ def train():
 
     model.to(device=device)
 
-    model.train()
+    model.train() # missing function?
 
     running_loss = 0
 
@@ -133,7 +133,7 @@ def train():
 
 def evaluate(path_model):
 
-    #re-think this function more clearly
+    # re-think this function more clearly
 
     test_ann = utils.get_path(
         "../../datasets/mnist/validation/query/labels_query.csv")
@@ -153,7 +153,7 @@ def evaluate(path_model):
     dataiter = iter(test_dataloader)
     images, _ = dataiter.next()
 
-    model = AE(train=False)
+    model = AE()
     model.load_state_dict(torch.load(path_model))
 
     outputs = model(images)
@@ -166,10 +166,13 @@ def evaluate(path_model):
 
 
 def main(args):
+    utils.createLabelsCsv("../../datasets/mnist/training/", "labels_train.csv")
+    utils.createLabelsCsv(
+        "../../datasets/mnist/validation/query", "labels_query.csv")
 
     if(args.test != None):
         path_model = utils.get_path(
-                f"../../models/AE/AE-{args.test}.pth")
+            f"../../models/AE/AE-{args.test}.pth")
     else:
         path_model = train()
 
