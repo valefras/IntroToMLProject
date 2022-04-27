@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import numpy
 from pandas._libs.lib import indices_fast
 from pandas.core.frame import DataFrame
@@ -16,7 +17,7 @@ import csv
 import pprint
 
 import pandas as pd
-
+import abc
 class CompetitionModel():
     def __init__(self,model,optim,loss,transform,name,dataset,epochs):
         self.model = model
@@ -67,7 +68,7 @@ class CompetitionModel():
                 self.optimizer.zero_grad()
 
                 output = self.model(image)
-                loss = self.loss_f(image, output)
+                loss = self.computeLoss(image, output)
                 loss.backward()
                 self.optimizer.step()
 
@@ -119,4 +120,6 @@ class CompetitionModel():
             print(torch.norm(difference).item())
         utils.imshow(tv.utils.make_grid(images))
 
-
+    @abc.abstractmethod
+    def computeLoss(self,inputs,outputs):
+        return #self.loss_f(inputs,outputs)

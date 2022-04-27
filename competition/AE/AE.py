@@ -86,6 +86,12 @@ class AE(torch.nn.Module):
         x = self.conv6(x)
         return x
 
+class Competition_AE(CompetitionModel):
+    def __init__(self, model, optim, loss, transform, name, dataset, epochs):
+        super().__init__(model, optim, loss, transform, name, dataset, epochs)
+
+    def computeLoss(self,inputs,outputs):
+        return self.loss_f(inputs,outputs)
 
 def main(args):
 
@@ -106,7 +112,7 @@ def main(args):
             tv.transforms.ToTensor()
         ])
 
-    model = CompetitionModel(net,optimizer,loss_function,model_transform,"AE","mnist",2)
+    model = Competition_AE(net,optimizer,loss_function,model_transform,"AE","mnist",2)
 
     if(args.test != None):
         path_model = utils.get_path(f"../../models/AE/AE-{args.test}.pth")
