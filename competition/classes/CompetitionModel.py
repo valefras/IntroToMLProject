@@ -18,8 +18,10 @@ import pprint
 
 import pandas as pd
 import abc
+
+
 class CompetitionModel():
-    def __init__(self,model,optim,loss,transform,name,dataset,epochs):
+    def __init__(self, model, optim, loss, transform, name, dataset, epochs):
         self.model = model
         self.optimizer = optim
         self.loss_f = loss
@@ -28,22 +30,23 @@ class CompetitionModel():
         self.transform = transform
         self.epochs = epochs
 
-    def scan_gallery(self,gallery_path,file_name,path_model):
+    def scan_gallery(self, gallery_path, file_name, path_model):
         pass
 
-    def calc_similarity(self,vector1,vector2):
+    def calc_similarity(self, vector1, vector2):
         pass
 
-    def get_top10(self,query_image,df_gallery:DataFrame):
+    def get_top10(self, query_image, df_gallery: DataFrame):
         pass
 
-    def find_image(self,gallery_path,query,file_name,path_model):
+    def find_image(self, gallery_path, query, file_name, path_model):
         pass
 
     def train(self):
 
         train_path = utils.get_path(f"../../datasets/{self.dataset}/training/")
-        train_ann = utils.get_path(f"../../datasets/{self.dataset}/training/labels_train.csv")
+        train_ann = utils.get_path(
+            f"../../datasets/{self.dataset}/training/labels_train.csv")
 
         training_data = CustomImageDataset(
             annotations_file=train_ann,
@@ -58,23 +61,22 @@ class CompetitionModel():
 
         self.model.to(device=device)
 
-        self.model.train() # missing function?
+        self.model.train()  # missing function?
 
         running_loss = 0
 
         for i in range(self.epochs):
-            for  data in tqdm(train_loder,desc=f"{i} Epoch: ",ascii=" >>>>>>>>>="):
+            for data in tqdm(train_loder, desc=f"{i} Epoch: ", ascii=" >>>>>>>>>="):
                 image, _ = data
                 self.optimizer.zero_grad()
 
                 output = self.model(image)
-                loss = self.computeLoss(image, output)
+                loss = self.computeLoss(image, output, _)
                 loss.backward()
                 self.optimizer.step()
 
                 running_loss += loss.item()
             print(f"Loss at {i+1} Epoch: {running_loss/len(train_loder)}")
-
 
         file_name = str(int(time()))
 
@@ -82,23 +84,22 @@ class CompetitionModel():
             f"../../models/{self.name}/AE-{file_name}.pth")
         torch.save(self.model.state_dict(), path_model)
 
-        self.scan_gallery(f"../../datasets/{self.dataset}/validation/gallery/",file_name,path_model)
+        self.scan_gallery(
+            f"../../datasets/{self.dataset}/validation/gallery/", file_name, path_model)
 
-        self.find_image(f"../../datasets/{self.dataset}/validation/gallery/",f"../../datasets/{self.dataset}/validation/query/3/5140.png",file_name,path_model)
+        self.find_image(f"../../datasets/{self.dataset}/validation/gallery/",
+                        f"../../datasets/{self.dataset}/validation/query/3/5140.png", file_name, path_model)
 
         return path_model
 
-
-
-
-
-    def evaluate(self,path_model):
+    def evaluate(self, path_model):
 
         # re-think this function more clearly
 
         test_ann = utils.get_path(
             f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
-        test_path = utils.get_path(f"../../datasets/{self.dataset}/validation/query")
+        test_path = utils.get_path(
+            f"../../datasets/{self.dataset}/validation/query")
 
         test_data = CustomImageDataset(
             annotations_file=test_ann,
@@ -121,5 +122,5 @@ class CompetitionModel():
         utils.imshow(tv.utils.make_grid(images))
 
     @abc.abstractmethod
-    def computeLoss(self,inputs,outputs):
-        return #self.loss_f(inputs,outputs)
+    def computeLoss(self, inputs, outputs, labels):
+        return  # self.loss_f(inputs,outputs,labels)

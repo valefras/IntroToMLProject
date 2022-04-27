@@ -1,23 +1,12 @@
-import numpy
-from pandas._libs.lib import indices_fast
-from pandas.core.frame import DataFrame
 import torch
 from torch.optim.adam import Adam
-from torch.utils.data import dataloader
 from torchvision import transforms
 from competition.classes.CompetitionModel import CompetitionModel
 from competition.utils import utils
 from competition.utils.CustomDataset import CustomImageDataset
 import torchvision as tv
 from torch.nn import functional as F
-from time import time
-from tqdm import tqdm
-from PIL import Image
-import os
-import csv
-import pprint
 
-import pandas as pd
 
 def configure_subparsers(subparsers):
     r"""Configure a new subparser for our second solution of the competition.
@@ -90,7 +79,7 @@ class Competition_AE(CompetitionModel):
     def __init__(self, model, optim, loss, transform, name, dataset, epochs):
         super().__init__(model, optim, loss, transform, name, dataset, epochs)
 
-    def computeLoss(self,inputs,outputs):
+    def computeLoss(self,inputs,outputs,labels):
         return self.loss_f(inputs,outputs)
 
 def main(args):
@@ -120,15 +109,3 @@ def main(args):
         path_model = model.train()
 
     model.evaluate(path_model)
-
-    # utils.createLabelsCsv("../../datasets/mnist/training/", "labels_train.csv")
-    # utils.createLabelsCsv(
-    #     "../../datasets/mnist/validation/query", "labels_query.csv")
-    #
-    # if(args.test != None):
-    #     path_model = utils.get_path(
-    #         f"../../models/AE/AE-{args.test}.pth")
-    # else:
-    #     path_model = train()
-    #
-    # evaluate(path_model)
