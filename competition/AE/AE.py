@@ -1,12 +1,23 @@
+import numpy
 from pandas._libs.lib import indices_fast
+from pandas.core.frame import DataFrame
 import torch
+from torch.optim.adam import Adam
 from torch.utils.data import dataloader
+from torchvision import transforms
+from competition.classes.CompetitionModel import CompetitionModel
 from competition.utils import utils
 from competition.utils.CustomDataset import CustomImageDataset
 import torchvision as tv
 from torch.nn import functional as F
 from time import time
 from tqdm import tqdm
+from PIL import Image
+import os
+import csv
+import pprint
+
+import pandas as pd
 
 def configure_subparsers(subparsers):
     r"""Configure a new subparser for our second solution of the competition.
@@ -76,104 +87,42 @@ class AE(torch.nn.Module):
         return x
 
 
-def train():
-
-    train_path = utils.get_path("../../datasets/mnist/training/")
-    train_ann = utils.get_path("../../datasets/mnist/training/labels_train.csv")
-
-    training_data = CustomImageDataset(
-        annotations_file=train_ann,
-        img_dir=train_path,
-        transform=tv.transforms.Compose([
-            tv.transforms.ToPILImage(),
-            tv.transforms.ToTensor()
-        ])
-    )
-
-    train_loder = dataloader.DataLoader(
-        training_data, batch_size=32, shuffle=True)
-
-
-    epochs = 1
-
-    loss_function = torch.nn.MSELoss()
-
-    model = AE()
-    lr = 0.001
-
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=lr, weight_decay=1e-8)
-
-    device = torch.device("cpu")
-
-    model.to(device=device)
-
-    model.train() # missing function?
-
-    running_loss = 0
-
-    for i in range(epochs):
-        for  data in tqdm(train_loder,desc=f"{i} Epoch: ",ascii="         #"):
-            image, _ = data
-            optimizer.zero_grad()
-
-            output = model(image)
-            loss = loss_function(image, output)
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item()
-        print(f"Loss at {i+1} Epoch: {running_loss/len(train_loder)}")
-    path_model = utils.get_path(
-        f"../../models/AE/AE-{str(int(time()))}.pth")
-    torch.save(model.state_dict(), path_model)
-
-    return path_model
-
-
-def evaluate(path_model):
-
-    # re-think this function more clearly
-
-    test_ann = utils.get_path(
-        "../../datasets/mnist/validation/query/labels_query.csv")
-    test_path = utils.get_path("../../datasets/mnist/validation/query")
-
-    test_data = CustomImageDataset(
-        annotations_file=test_ann,
-        img_dir=test_path,
-        transform=tv.transforms.Compose([
-            tv.transforms.ToPILImage(),
-            tv.transforms.ToTensor()
-        ])
-    )
-
-    test_dataloader = dataloader.DataLoader(
-        test_data, batch_size=9, shuffle=True)
-    dataiter = iter(test_dataloader)
-    images, _ = dataiter.next()
-
-    model = AE()
-    model.load_state_dict(torch.load(path_model))
-
-    outputs = model(images)
-
-    for output in outputs[1:]:
-        difference = outputs[0] - output
-        print(torch.norm(difference).item())
-    utils.imshow(tv.utils.make_grid(images))
-
-
-
 def main(args):
+
     utils.createLabelsCsv("../../datasets/mnist/training/", "labels_train.csv")
     utils.createLabelsCsv(
         "../../datasets/mnist/validation/query", "labels_query.csv")
 
-    if(args.test != None):
-        path_model = utils.get_path(
-            f"../../models/AE/AE-{args.test}.pth")
-    else:
-        path_model = train()
+    loss_function = torch.nn.MSELoss()
 
-    evaluate(path_model)
+    net = AE()
+    lr = 0.001
+
+    optimizer = torch.optim.Adam(
+        net.parameters(), lr=lr, weight_decay=1e-8)
+
+    model_transform = tv.transforms.Compose([
+            tv.transforms.ToPILImage(),
+            tv.transforms.ToTensor()
+        ])
+
+    model = CompetitionModel(net,optimizer,loss_function,model_transform,"AE","mnist",2)
+
+    if(args.test != None):
+        path_model = utils.get_path(f"../../models/AE/AE-{args.test}.pth")
+    else:
+        path_model = model.train()
+
+    model.evaluate(path_model)
+
+    # utils.createLabelsCsv("../../datasets/mnist/training/", "labels_train.csv")
+    # utils.createLabelsCsv(
+    #     "../../datasets/mnist/validation/query", "labels_query.csv")
+    #
+    # if(args.test != None):
+    #     path_model = utils.get_path(
+    #         f"../../models/AE/AE-{args.test}.pth")
+    # else:
+    #     path_model = train()
+    #
+    # evaluate(path_model)
