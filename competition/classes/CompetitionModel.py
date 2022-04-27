@@ -47,7 +47,6 @@ class CompetitionModel():
         train_path = utils.get_path(f"../../datasets/{self.dataset}/training/")
         train_ann = utils.get_path(
             f"../../datasets/{self.dataset}/training/labels_train.csv")
-
         training_data = CustomImageDataset(
             annotations_file=train_ann,
             img_dir=train_path,
@@ -69,7 +68,6 @@ class CompetitionModel():
             for data in tqdm(train_loder, desc=f"{i} Epoch: ", ascii=" >>>>>>>>>="):
                 image, _ = data
                 self.optimizer.zero_grad()
-
                 output = self.model(image)
                 loss = self.computeLoss(image, output, _)
                 loss.backward()
@@ -81,7 +79,7 @@ class CompetitionModel():
         file_name = str(int(time()))
 
         path_model = utils.get_path(
-            f"../../models/{self.name}/AE-{file_name}.pth")
+            f"../../models/{self.name}/{self.name}-{file_name}.pth")
         torch.save(self.model.state_dict(), path_model)
 
         self.scan_gallery(

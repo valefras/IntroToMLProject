@@ -1,7 +1,9 @@
-from torch.utils.data import Dataset
-import pandas as pd
-from torchvision.io import read_image
 import os
+
+import pandas as pd
+from torch.utils.data import Dataset
+from torchvision.io import read_image, ImageReadMode
+
 
 class CustomImageDataset(Dataset):
     def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
@@ -15,12 +17,10 @@ class CustomImageDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
-        image = read_image(img_path)
+        image = read_image(img_path, mode=ImageReadMode.RGB)
         label = self.img_labels.iloc[idx, 1]
         if self.transform:
             image = self.transform(image)
         if self.target_transform:
             label = self.target_transform(label)
         return image, label
-
-
