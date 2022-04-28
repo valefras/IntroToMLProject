@@ -62,9 +62,8 @@ class CompetitionModel():
 
         self.model.train()  # missing function?
 
-        running_loss = 0
-
         for i in range(self.epochs):
+            running_loss = 0
             for data in tqdm(train_loder, desc=f"{i} Epoch: ", ascii=" >>>>>>>>>="):
                 image, _ = data
                 self.optimizer.zero_grad()

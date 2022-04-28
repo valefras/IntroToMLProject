@@ -90,7 +90,7 @@ def main(args):
     ])
 
     model = Competition_classifier(
-        net, optimizer, loss_function, model_transform, "comp_classifier", "animals", 1)
+        net, optimizer, loss_function, model_transform, "comp_classifier", "animals", 10)
 
     if(args.test != None):
         path_model = utils.get_path(
