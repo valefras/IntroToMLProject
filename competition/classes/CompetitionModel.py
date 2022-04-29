@@ -95,6 +95,7 @@ class CompetitionModel():
             #at least 1 time this condition will return true, so train() will always return a correct path.
             if(running_loss < min_val_error):
                 print("Got better validation error, saving model's weight\n")
+                min_val_error = running_loss
                 path_model = self.save_weights()
 
         # self.scan_gallery(

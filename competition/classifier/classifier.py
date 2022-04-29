@@ -51,8 +51,8 @@ class classifier(torch.nn.Module):
         return x
 
 class Competition_classifier(CompetitionModel):
-    def __init__(self, model, optim, loss, transform, name, dataset, epochs):
-        super().__init__(model, optim, loss, transform, name, dataset, epochs)
+    def __init__(self, model, optim, loss, transform, name, dataset, epochs,n_channels):
+        super().__init__(model, optim, loss, transform, name, dataset, epochs,n_channels)
 
     def computeLoss(self,inputs,outputs,labels):
         return self.loss_f(outputs, labels)
@@ -77,11 +77,11 @@ def main(args):
     ])
 
     model = Competition_classifier(
-        net, optimizer, loss_function, model_transform, "classifier", "mnist", 2)
+        net, optimizer, loss_function, model_transform, "classifier", "mnist", 2,1)
 
     if(args.test != None):
         path_model = utils.get_path(f"../../models/classifier/classifier-{args.test}.pth")
     else:
         path_model = model.train()
 
-    model.evaluate(path_model)
+    #model.evaluate(path_model)
