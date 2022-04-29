@@ -7,6 +7,8 @@ from competition.utils.CustomDataset import CustomImageDataset
 import torchvision as tv
 from torch.nn import functional as F
 import PIL
+import warnings
+warnings.simplefilter(action='ignore', category=UserWarning)
 
 def configure_subparsers(subparsers):
     r"""Configure a new subparser for our second solution of the competition.

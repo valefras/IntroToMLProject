@@ -63,7 +63,7 @@ class CompetitionModel():
             train_split, batch_size=32, shuffle=True)
 
         validation_loader = dataloader.DataLoader(
-            validation_split,batch_size=32,shuffle=False)
+            validation_split,batch_size=32,shuffle=True)
 
         device = torch.device("cpu")
 
