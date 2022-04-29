@@ -3,7 +3,7 @@ import numpy
 from pandas._libs.lib import indices_fast
 from pandas.core.frame import DataFrame
 import torch
-from torch.utils.data import dataloader
+from torch.utils.data import dataloader,random_split
 from torchvision import transforms
 from competition.utils import utils
 from competition.utils.CustomDataset import CustomImageDataset
@@ -19,9 +19,8 @@ import pprint
 import pandas as pd
 import abc
 
-
 class CompetitionModel():
-    def __init__(self, model, optim, loss, transform, name, dataset, epochs):
+    def __init__(self, model, optim, loss, transform, name, dataset, epochs,channels=3):
         self.model = model
         self.optimizer = optim
         self.loss_f = loss
@@ -29,7 +28,7 @@ class CompetitionModel():
         self.dataset = dataset
         self.transform = transform
         self.epochs = epochs
-
+        self.n_channels = channels
     def scan_gallery(self, gallery_path, file_name, path_model):
         pass
 
@@ -44,27 +43,37 @@ class CompetitionModel():
 
     def train(self):
 
-        train_path = utils.get_path(f"../../datasets/{self.dataset}/training/")
-        train_ann = utils.get_path(
+        dataset_path = utils.get_path(f"../../datasets/{self.dataset}/training/")
+        dataset_ann = utils.get_path(
             f"../../datasets/{self.dataset}/training/labels_train.csv")
-        training_data = CustomImageDataset(
-            annotations_file=train_ann,
-            img_dir=train_path,
-            transform=self.transform
+        dataset = CustomImageDataset(
+            annotations_file=dataset_ann,
+            img_dir=dataset_path,
+            transform=self.transform,
+            channels=self.n_channels
         )
+        print(dataset_path)
+        train_split_size = int(len(dataset)*0.8)
+        validation_split_size = len(dataset) - train_split_size
+
+        train_split, validation_split = random_split(dataset,[train_split_size,validation_split_size])
+
 
         train_loder = dataloader.DataLoader(
-            training_data, batch_size=32, shuffle=True)
+            train_split, batch_size=32, shuffle=True)
+
+        validation_loader = dataloader.DataLoader(
+            validation_split,batch_size=32,shuffle=False)
 
         device = torch.device("cpu")
 
         self.model.to(device=device)
 
-        self.model.train()  # missing function?
-
+        min_val_error = float("inf")
+        path_model = ""
         for i in range(self.epochs):
-            running_loss = 0
-            for data in tqdm(train_loder, desc=f"{i} Epoch: ", ascii=" >>>>>>>>>="):
+            self.model.train()
+            for data in tqdm(train_loder, desc=f"{i+1} Epoch: ", ascii=" >>>>>>>>>="):
                 image, _ = data
                 self.optimizer.zero_grad()
                 output = self.model(image)
@@ -72,21 +81,28 @@ class CompetitionModel():
                 loss.backward()
                 self.optimizer.step()
 
+            self.model.eval()
+            running_loss = 0
+            for data in tqdm(validation_loader,desc="Computing the model's validation error", ascii=" >>>>>>>>="):
+                image,_ = data
+                with torch.no_grad():
+                    output = self.model(image)
+                loss = self.computeLoss(image,output,_)
                 running_loss += loss.item()
-            print(f"Loss at {i+1} Epoch: {running_loss/len(train_loder)}")
 
-        file_name = str(int(time()))
 
-        path_model = utils.get_path(
-            f"../../models/{self.name}/{self.name}-{file_name}.pth")
-        torch.save(self.model.state_dict(), path_model)
+            print(f"Validation loss at {i+1} Epoch: {running_loss/len(validation_loader)}")
+            #at least 1 time this condition will return true, so train() will always return a correct path.
+            if(running_loss < min_val_error):
+                print("Got better validation error, saving model's weight\n")
+                path_model = self.save_weights()
 
-        self.scan_gallery(
-            f"../../datasets/{self.dataset}/validation/gallery/", file_name, path_model)
-
-        self.find_image(f"../../datasets/{self.dataset}/validation/gallery/",
-                        f"../../datasets/{self.dataset}/validation/query/3/5140.png", file_name, path_model)
-
+        # self.scan_gallery(
+        #     f"../../datasets/{self.dataset}/validation/gallery/", file_name, path_model)
+        #
+        # self.find_image(f"../../datasets/{self.dataset}/validation/gallery/",
+        #                 f"../../datasets/{self.dataset}/validation/query/3/5140.png", file_name, path_model)
+        #
         return path_model
 
     def evaluate(self, path_model):
@@ -117,6 +133,15 @@ class CompetitionModel():
             difference = outputs[0] - output
             print(torch.norm(difference).item())
         utils.imshow(tv.utils.make_grid(images))
+
+    def save_weights(self):
+        file_name = str(int(time()))
+
+        path_model = utils.get_path(
+            f"../../models/{self.name}/{self.name}-{file_name}.pth")
+        torch.save(self.model.state_dict(), path_model)
+        return path_model
+
 
     @abc.abstractmethod
     def computeLoss(self, inputs, outputs, labels):
