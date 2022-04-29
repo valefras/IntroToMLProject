@@ -2,6 +2,7 @@ import argparse
 from competition.AE import AE
 from competition.classifier import classifier
 from competition.comp_classifier import comp_classifier
+from competition.comp_AE import comp_AE
 
 def get_args():
     r"""Parse command line arguments."""
@@ -17,7 +18,7 @@ def get_args():
     AE.configure_subparsers(subparsers)
     classifier.configure_subparsers(subparsers)
     comp_classifier.configure_subparsers(subparsers)
-
+    comp_AE.configure_subparsers(subparsers)
     #parsing arguments
     parsed_args = parser.parse_args()
 
