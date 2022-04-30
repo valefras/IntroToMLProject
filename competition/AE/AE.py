@@ -83,11 +83,6 @@ class Competition_AE(CompetitionModel):
         return self.loss_f(inputs,outputs)
 
 def main(args):
-
-    utils.createLabelsCsv("../../datasets/mnist/training/", "labels_train.csv")
-    utils.createLabelsCsv(
-        "../../datasets/mnist/validation/query", "labels_query.csv")
-
     loss_function = torch.nn.MSELoss()
 
     net = AE()

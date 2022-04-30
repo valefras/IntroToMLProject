@@ -32,7 +32,7 @@ def configure_subparsers(subparsers):
 class comp_AE(torch.nn.Module):
     def __init__(self,train=True):
         super().__init__()
-
+        
         self.is_training = train
 
         self.conv1 = torch.nn.Conv2d(3, 5, 5)
@@ -69,9 +69,7 @@ class comp_AE(torch.nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
-
-        if(not(self.is_training)):
-            return x
+        features = x
 
         x = F.relu(self.fc5(x))
         x = F.relu(self.fc6(x))
@@ -82,7 +80,7 @@ class comp_AE(torch.nn.Module):
         x = self.pool3(F.relu(self.conv6(x)),indices2)
         x = self.pool4(F.relu(self.conv7(x)),indices1)
         x = F.relu(self.conv8(x))
-        return x
+        return x, features
 
 class Competition_AE(CompetitionModel):
     def __init__(self, model, optim, loss, transform, name, dataset, epochs,channels=3):
@@ -92,11 +90,6 @@ class Competition_AE(CompetitionModel):
         return self.loss_f(inputs,outputs)
 
 def main(args):
-
-    utils.createLabelsCsv("../../datasets/animals/training/", "labels_train.csv")
-    utils.createLabelsCsv(
-        "../../datasets/animals/validation/query", "labels_query.csv")
-
     loss_function = torch.nn.MSELoss()
 
     net = comp_AE()
@@ -113,11 +106,13 @@ def main(args):
         tv.transforms.ToTensor()
     ])
 
-    model = Competition_AE(net,optimizer,loss_function,model_transform,"comp_AE","animals",50)
+    model = Competition_AE(net,optimizer,loss_function,model_transform,"comp_AE","new_animals",1)
 
     if(args.test != None):
-        path_model = utils.get_path(f"../../models/AE/AE-{args.test}.pth")
+        path_model = utils.get_path(f"../../models/comp_AE/comp_AE-{args.test}.pth")
     else:
         path_model = model.train()
+
+    model.evaluate(path_model)
 
 

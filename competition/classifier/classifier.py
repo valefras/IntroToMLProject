@@ -58,11 +58,6 @@ class Competition_classifier(CompetitionModel):
         return self.loss_f(outputs, labels)
 
 def main(args):
-
-    utils.createLabelsCsv("../../datasets/mnist/training/", "labels_train.csv")
-    utils.createLabelsCsv(
-        "../../datasets/mnist/validation/query", "labels_query.csv")
-
     loss_function = torch.nn.CrossEntropyLoss()
 
     net = classifier()

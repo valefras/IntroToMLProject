@@ -43,6 +43,7 @@ class comp_classifier(torch.nn.Module):
         self.fc2 = torch.nn.Linear(900, 200)
         self.fc3 = torch.nn.Linear(200, 100)
         self.fc4 = torch.nn.Linear(100, 30)
+        self.fc5 = torch.nn.Linear(30, 9)
 
     def forward(self, x):
         x = self.pool1(F.relu(self.conv1(x)))
@@ -53,7 +54,9 @@ class comp_classifier(torch.nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
-        return x
+        features = x
+        x = F.relu(self.fc5(x))
+        return x, features
 
 
 class Competition_classifier(CompetitionModel):
@@ -65,12 +68,6 @@ class Competition_classifier(CompetitionModel):
 
 
 def main(args):
-
-    utils.createLabelsCsv(
-        "../../datasets/animals/training/", "labels_train.csv")
-    utils.createLabelsCsv(
-        "../../datasets/animals/validation/query", "labels_query.csv")
-
     loss_function = torch.nn.CrossEntropyLoss()
 
     net = comp_classifier()

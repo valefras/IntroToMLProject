@@ -1,7 +1,9 @@
 import os
+import textwrap
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL.Image import Image as PilImage
 
 
 def get_path(req_path):
@@ -16,7 +18,7 @@ def createLabelsCsv(ds_path, csv_name):
     slashes = "/"
 
     if(os.name == "nt"):
-        # im on windows
+        # i am on windows
         slashes = "\\"
 
     with open(os.path.realpath(os.path.join(path_set, csv_name)), "w") as f:
@@ -29,8 +31,33 @@ def createLabelsCsv(ds_path, csv_name):
     return labels
 
 
-def imshow(img):
-    img = img / 2 + 0.5     # unnormalize
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+def display_images(
+        images: [PilImage],
+        columns=4, width=20, height=8, max_images=11,
+        label_wrap_length=50, label_font_size=8):
+
+    if not images:
+        print("No images to display.")
+        return
+
+    if len(images) > max_images:
+        print(f"Showing {max_images} images of {len(images)}:")
+        images = images[0:max_images]
+
+    height = max(height, int(len(images)/columns) * height)
+    plt.figure(figsize=(width, height))
+    for i, image in enumerate(images):
+
+        plt.subplot(int(len(images) / columns + 1), columns, i + 1)
+        plt.imshow(image)
+
+        if hasattr(image, 'filename'):
+            title = image.filename
+            if title.endswith("/"):
+                title = title[0:-1]
+            title = os.path.basename(title)
+            title = textwrap.wrap(title, label_wrap_length)
+            title = "\n".join(title)
+            plt.title(title, fontsize=label_font_size)
+    
     plt.show()
