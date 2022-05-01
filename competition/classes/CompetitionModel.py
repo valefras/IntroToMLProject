@@ -29,6 +29,11 @@ class CompetitionModel():
         self.epochs = epochs
         self.n_channels = channels
 
+        self.score = {
+                'top1':0,
+                'top5':0,
+                'top10':0
+                }
     def scan_gallery(self, path_model):
         utils.createLabelsCsv(
             f"../../datasets/{self.dataset}/validation/gallery", "labels_gallery.csv")
@@ -49,7 +54,7 @@ class CompetitionModel():
         self.model.load_state_dict(torch.load(path_model))
 
         features_gallery = pd.DataFrame(columns=['label','features', 'path'])
-        
+
         for data in tqdm(gallery_dataloader, desc="Extracting features from the gallery", ascii=" >>>>>>>>="):
             image, label, file_path = data
             with torch.no_grad():
@@ -58,14 +63,20 @@ class CompetitionModel():
         return features_gallery
 
     def calc_similarity(self, feats1, feats2):
-        return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
-
+        #return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
+        return (numpy.dot(feats1,feats2) / (numpy.linalg.norm(feats1)*numpy.linalg.norm(feats2))) #cosine similarity
     def get_top10(self, query_image, df_gallery: DataFrame):
         top10 = pd.DataFrame(columns=['label','distance', 'path'])
         for i, im in df_gallery.iterrows():
             sim = self.calc_similarity(query_image, im['features'])
-            top10 = top10.append(pd.DataFrame({'label':[im['label']], 'distance':[sim], 'path': [im['path']]}), ignore_index=False)
-        return top10.sort_values('distance').head(10)
+            if(len(top10.index) < 10):
+                top10 = top10.append(pd.DataFrame({'label':[im['label']], 'distance':[sim], 'path': [im['path']]}), ignore_index=False)
+            else:
+                if(top10['distance'].iloc[-1] > sim):
+                    top10 = top10.head(-1)
+                    top10 = top10.append(pd.DataFrame({'label':[im['label']], 'distance':[sim], 'path': [im['path']]}), ignore_index=False)
+            top10 = top10.sort_values(by=['distance'],ascending=True)
+        return top10
 
     def find_image(self, gallery_path, query, file_name, path_model):
         pass
@@ -155,14 +166,38 @@ class CompetitionModel():
         self.model.eval()
         print("Evaluating data")
         feats_gallery = self.scan_gallery(path_model)
+
         for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
             image, label, file_path = data
             with torch.no_grad():
                 res = self.get_top10(self.model(image)[1].numpy()[0], feats_gallery)
-            images = [Image.open(im) for im in res['path'].head(10)]
-            images.insert(0, Image.open(file_path[0]))
-            utils.display_images(images)
+                self.get_score(res,label.item())
+            # images = [Image.open(im) for im in res['path'].head(10)]
+            # images.insert(0, Image.open(file_path[0]))
+            # utils.display_images(images)
             #print(res)
+
+        for key in self.score:
+            print(key)
+            print((self.score[key]*100) / len(test_dataloader))
+
+        print(self.score)
+    def get_score(self,top10,query_label):
+        #check top 1
+        top10_vals = top10.label.values
+        if(top10_vals[0] == query_label):
+            self.score['top1'] += 1
+            self.score['top5'] += 1
+            self.score['top10'] += 1
+        #check top 5
+        if(query_label in top10_vals[1:5]):
+            self.score['top5'] += 1
+            self.score['top10'] += 1
+
+
+        #check top 10
+        if(query_label in top10_vals[5:]):
+            self.score['top10'] += 1
 
     def save_weights(self):
         file_name = str(int(time()))
