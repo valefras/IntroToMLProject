@@ -90,7 +90,7 @@ def main(args):
     loss_function = torch.nn.MSELoss()
 
     net = cAE()
-    lr = 0.01
+    lr = 0.0001
 
     optimizer = torch.optim.Adam(
         net.parameters(), lr=lr, weight_decay=1e-6,)
