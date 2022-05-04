@@ -33,14 +33,14 @@ def configure_subparsers(subparsers):
 class comp_classifier(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = torch.nn.Conv2d(3, 32, 5, stride=2, padding=2)
+        self.conv1 = torch.nn.Conv2d(3, 32, 5, stride=2, padding=2) #channels 3, filter count 32, spatial extent 5
         self.conv2 = torch.nn.Conv2d(32, 64, 3, stride=2)
-        self.conv3 = torch.nn.Conv2d(64, 128, 3, stride=2)
-        self.conv4 = torch.nn.Conv2d(128,128,3)
+        self.conv3 = torch.nn.Conv2d(64, 95, 3, stride=2)
+        self.conv4 = torch.nn.Conv2d(95,95,3)
         self.avg = torch.nn.AvgPool2d(7)
         self.flatten = torch.nn.Flatten()
         self.drop = torch.nn.Dropout()
-        self.fc1 = torch.nn.Linear(128, 128)
+        self.fc1 = torch.nn.Linear(95, 95)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))

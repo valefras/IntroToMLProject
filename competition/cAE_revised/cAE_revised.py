@@ -188,9 +188,10 @@ def main(args):
     model = Competition_AE(net,optimizer,loss_function,model_transform,"cAE_revised","new_animals",50,channels=3)
 
     if(args.test != None):
-        path_model = utils.get_path(f"../../models/cAE_revised/cAE_revised-{args.test}.pth")
+        if args.test == "latest":
+            path_model = utils.get_latest_model("cAE_revised")
+        else:
+            path_model = utils.get_path(f"../../models/cAE_revised/cAE_revised-{args.test}.pth")
     else:
         path_model = model.train()
-
     model.evaluate(path_model)
-
