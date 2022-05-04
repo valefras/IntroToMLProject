@@ -40,10 +40,9 @@ class cAE(torch.nn.Module):
 
         self.is_training = train
 
-        self.conv1 = torch.nn.Conv2d(3, 32, 5,stride=2) # -> 110x110x32
+        self.conv1 = torch.nn.Conv2d(1, 32, 5,stride=2) # -> 110x110x32
         self.conv2 = torch.nn.Conv2d(32, 64, 3,stride=2,padding=2) # -> 56x56x64
-        self.conv3 = torch.nn.Conv2d(64,128,3,stride=2,padding=1) # -> 28x28x128
-        self.conv4 = torch.nn.Conv2d(128,128,3) # -> 25x25x128
+        self.conv4 = torch.nn.Conv2d(64,128,3) # -> 25x25x128
         self.conv5 = torch.nn.Conv2d(128,128,3,stride=3) # -> 8x8x128
         self.avg = torch.nn.AvgPool2d(8) # -> 1x1x128
         self.flat = torch.nn.Flatten()
@@ -54,15 +53,13 @@ class cAE(torch.nn.Module):
         self.unflat = torch.nn.Unflatten(dim=1,unflattened_size=(128,1,1)) # -> 1x1x128
         self.avg2 = torch.nn.AdaptiveAvgPool2d((8,8)) # -> 8x8x128
         self.conv6 = torch.nn.ConvTranspose2d(128,128,3,stride=3,output_padding=(1,1)) # -> 25x25x128
-        self.conv7 = torch.nn.ConvTranspose2d(128,128,3,dilation=2,padding=1,output_padding=(1,1)) # -> 28x28x128
-        self.conv8 = torch.nn.ConvTranspose2d(128,64,3,stride=2,padding=1,output_padding=(1,1)) # -> 56x56x64
+        self.conv7 = torch.nn.ConvTranspose2d(128,64,3,dilation=2,padding=1,output_padding=(1,1)) # -> 28x28x128
         self.conv9 = torch.nn.ConvTranspose2d(64,32,3,stride=2,padding=2,output_padding=(1,1)) # -> 110x110x32
-        self.conv10 = torch.nn.ConvTranspose2d(32,3,5,stride=2,output_padding=(1,1)) # -> 224x244x3
+        self.conv10 = torch.nn.ConvTranspose2d(32,1,5,stride=2,output_padding=(1,1)) # -> 224x244x3
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
         x = F.relu(self.conv4(x))
         x = F.relu(self.conv5(x))
         x = self.avg(x)
@@ -76,7 +73,6 @@ class cAE(torch.nn.Module):
         x = self.avg2(x)
         x = F.relu(self.conv6(x))
         x = F.relu(self.conv7(x))
-        x = F.relu(self.conv8(x))
         x = F.relu(self.conv9(x))
         x = F.relu(self.conv10(x))
 
@@ -88,25 +84,27 @@ class Competition_AE(CompetitionModel):
     def computeLoss(self,inputs,outputs,labels):
         return self.loss_f(inputs,outputs)
     def calc_similarity(self, feats1, feats2):
-        return numpy.dot(feats1,feats2) / (numpy.linalg.norm(feats1) * numpy.linalg.norm(feats2))
+        return numpy.linalg.norm(feats1-feats2)
+        # return numpy.dot(feats1,feats2) / (numpy.linalg.norm(feats1) * numpy.linalg.norm(feats2))
 def main(args):
     loss_function = torch.nn.MSELoss()
 
     net = cAE()
-    lr = 0.001
+    lr = 0.01
 
     optimizer = torch.optim.Adam(
-        net.parameters(), lr=lr, weight_decay=1e-8)
+        net.parameters(), lr=lr, weight_decay=1e-6,)
 
     model_transform = tv.transforms.Compose([
-        tv.transforms.Resize((224, 224)),
+        tv.transforms.Resize((112, 112)),
+        tv.transforms.Grayscale(),
         tv.transforms.RandomHorizontalFlip(),
         tv.transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
         tv.transforms.ToPILImage(),
         tv.transforms.ToTensor()
     ])
 
-    model = Competition_AE(net,optimizer,loss_function,model_transform,"cAE_revised","new_animals",15)
+    model = Competition_AE(net,optimizer,loss_function,model_transform,"cAE_revised","new_animals",50,channels=3)
 
     if(args.test != None):
         path_model = utils.get_path(f"../../models/cAE_revised/cAE_revised-{args.test}.pth")
