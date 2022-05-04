@@ -67,15 +67,15 @@ class CompetitionModel():
         return features_gallery
 
     def calc_similarity(self, feats1, feats2):
-        # return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
+        return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
 
         # cosine similarity
-        # return (numpy.dot(feats1, feats2) / (numpy.linalg.norm(feats1)*numpy.linalg.norm(feats2)))
+        #return (numpy.dot(feats1, feats2) / (numpy.linalg.norm(feats1)*numpy.linalg.norm(feats2)))
 
-        # mahalabinois distance, NOT TESTED
-        X = numpy.stack((feats1, feats2), axis=0)
+        # mahalanobis distance, NOT TESTED
+        """ X = numpy.stack((feats1, feats2), axis=0)
         iv = inv(numpy.cov(X))
-        return distance.mahalanobis(feats1, feats2, iv)
+        return distance.mahalanobis(feats1, feats2, iv) """
 
     def get_top10(self, query_image, df_gallery: DataFrame):
         top10 = pd.DataFrame(columns=['label', 'distance', 'path'])

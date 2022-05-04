@@ -30,6 +30,11 @@ def createLabelsCsv(ds_path, csv_name):
 
     return labels
 
+def get_latest_model(model_name):
+    model_path = get_path(f'../../models/{model_name}')
+    folder_walk = os.walk(model_path)
+    return get_path(model_path + "/" + next(folder_walk)[2][-1])
+
 
 def display_images(
         images: [PilImage],

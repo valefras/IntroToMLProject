@@ -114,9 +114,10 @@ def main(args):
                            model_transform, "comp_AE", "new_animals", 1)
 
     if(args.test != None):
-        path_model = utils.get_path(
-            f"../../models/comp_AE/comp_AE-{args.test}.pth")
+        if args.test == "latest":
+            path_model = utils.get_latest_model("comp_AE")
+        else:
+            path_model = utils.get_path(f"../../models/comp_AE/comp_AE-{args.test}.pth")
     else:
         path_model = model.train()
-
     model.evaluate(path_model)

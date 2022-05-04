@@ -33,29 +33,25 @@ def configure_subparsers(subparsers):
 class comp_classifier(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = torch.nn.Conv2d(3, 5, 5)
-        self.pool1 = torch.nn.MaxPool2d(2, 2)
-        self.conv2 = torch.nn.Conv2d(5, 10, 5)
-        self.pool2 = torch.nn.MaxPool2d(2, 2)
-        self.conv3 = torch.nn.Conv2d(10, 15, 3)
+        self.conv1 = torch.nn.Conv2d(3, 32, 5, stride=2, padding=2)
+        self.conv2 = torch.nn.Conv2d(32, 64, 3, stride=2)
+        self.conv3 = torch.nn.Conv2d(64, 128, 3, stride=2)
+        self.conv4 = torch.nn.Conv2d(128,128,3)
+        self.avg = torch.nn.AvgPool2d(7)
         self.flatten = torch.nn.Flatten()
-        self.fc1 = torch.nn.Linear(1815, 900)
-        self.fc2 = torch.nn.Linear(900, 200)
-        self.fc3 = torch.nn.Linear(200, 100)
-        self.fc4 = torch.nn.Linear(100, 30)
-        self.fc5 = torch.nn.Linear(30, 9)
+        self.drop = torch.nn.Dropout()
+        self.fc1 = torch.nn.Linear(128, 128)
 
     def forward(self, x):
-        x = self.pool1(F.relu(self.conv1(x)))
-        x = self.pool2(F.relu(self.conv2(x)))
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+        x = self.avg(x)
         x = self.flatten(x)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = F.relu(self.fc4(x))
+        x = self.drop(x)
         features = x
-        x = F.relu(self.fc5(x))
+        x = F.relu(self.fc1(x))
         return x, features
 
 
@@ -77,7 +73,7 @@ def main(args):
         net.parameters(), lr=lr, weight_decay=1e-8)
 
     model_transform = tv.transforms.Compose([
-        tv.transforms.Resize((64, 64)),
+        tv.transforms.Resize((84, 84)),
         tv.transforms.ColorJitter(hue=.05, saturation=.05),
         tv.transforms.RandomHorizontalFlip(),
         tv.transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
@@ -86,12 +82,13 @@ def main(args):
     ])
 
     model = Competition_classifier(
-        net, optimizer, loss_function, model_transform, "comp_classifier", "animals", 175)
+        net, optimizer, loss_function, model_transform, "comp_classifier", "new_animals", 200)
 
     if(args.test != None):
-        path_model = utils.get_path(
-            f"../../models/comp_classifier/comp_classifier-{args.test}.pth")
+        if args.test == "latest":
+            path_model = utils.get_latest_model("comp_classifier")
+        else:
+            path_model = utils.get_path(f"../../models/comp_classifier/comp_classifier-{args.test}.pth")
     else:
         path_model = model.train()
-
     model.evaluate(path_model)
