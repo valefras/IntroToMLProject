@@ -49,6 +49,9 @@ class cAE(torch.nn.Module):
         self.drop = torch.nn.Dropout()
         self.fc1 = torch.nn.Linear(128,128)
 
+
+        self.classLayer = torch.nn.Linear(128,95)
+
         self.fc2 = torch.nn.Linear(128,128) # -> 128
         self.unflat = torch.nn.Unflatten(dim=1,unflattened_size=(128,1,1)) # -> 1x1x128
         self.avg2 = torch.nn.AdaptiveAvgPool2d((8,8)) # -> 8x8x128
@@ -68,6 +71,8 @@ class cAE(torch.nn.Module):
         x = self.fc1(x)
         features = x
 
+        classes = self.classLayer(features)
+
         x = self.fc2(x)
         x = self.unflat(x)
         x = self.avg2(x)
@@ -76,16 +81,30 @@ class cAE(torch.nn.Module):
         x = F.relu(self.conv9(x))
         x = F.relu(self.conv10(x))
 
-        return x, features
+        return x, features,classes
 class Competition_AE(CompetitionModel):
     def __init__(self, model, optim, loss, transform, name, dataset, epochs,channels=3):
         super().__init__(model, optim, loss, transform, name, dataset, epochs,channels)
 
-    def computeLoss(self,inputs,outputs,labels):
-        return self.loss_f(inputs,outputs)
+    def computeLoss(self,inputs,outputs,labels,truthLabels):
+        return self.loss_f(inputs,outputs)+torch.nn.CrossEntropyLoss()(labels,truthLabels)
     def calc_similarity(self, feats1, feats2):
         return numpy.linalg.norm(feats1-feats2)
         # return numpy.dot(feats1,feats2) / (numpy.linalg.norm(feats1) * numpy.linalg.norm(feats2))
+    def fitModel(self,data,isTraining):
+        image, labels, img_path = data
+
+        if(not(isTraining)):
+            with torch.no_grad():
+                output = self.model(image)
+                loss = self.computeLoss(image, output[0], output[2],labels)
+
+        else:
+            self.optimizer.zero_grad()
+            output = self.model(image)
+            loss = self.computeLoss(image, output[0],output[2] ,labels)
+        return loss
+
 def main(args):
     loss_function = torch.nn.MSELoss()
 

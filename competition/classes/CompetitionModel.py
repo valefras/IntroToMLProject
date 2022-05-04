@@ -134,20 +134,14 @@ class CompetitionModel():
         for i in range(self.epochs):
             self.model.train()
             for data in tqdm(train_loder, desc=f"{i+1} Epoch: ", ascii=" >>>>>>>>>="):
-                image, labels, img_path = data
-                self.optimizer.zero_grad()
-                output = self.model(image)
-                loss = self.computeLoss(image, output[0], labels)
+                loss = self.fitModel(data,True)
                 loss.backward()
                 self.optimizer.step()
 
             self.model.eval()
             running_loss = 0
             for data in tqdm(validation_loader, desc="Computing the model's validation error", ascii=" >>>>>>>>="):
-                image, labels, img_path = data
-                with torch.no_grad():
-                    output = self.model(image)
-                loss = self.computeLoss(image, output[0], labels)
+                self.fitModel(data,False)
                 running_loss += loss.item()
 
             print(
@@ -160,6 +154,20 @@ class CompetitionModel():
 
         return path_model
 
+    def fitModel(self,data,isTraining):
+
+        image, labels, img_path = data
+
+        if(not(isTraining)):
+            with torch.no_grad():
+                output = self.model(image)
+                loss = self.computeLoss(image, output[0], labels)
+
+        else:
+            self.optimizer.zero_grad()
+            output = self.model(image)
+            loss = self.computeLoss(image, output[0], labels)
+        return loss
     def evaluate(self, path_model):
         test_ann = utils.get_path(
             f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
