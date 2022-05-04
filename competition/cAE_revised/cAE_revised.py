@@ -1,6 +1,6 @@
 from PIL.Image import Image
 import matplotlib
-from matplotlib.pyplot import imshow
+from matplotlib.pyplot import cla, imshow
 from matplotlib.transforms import Transform
 import numpy
 import torch
@@ -13,6 +13,10 @@ import torchvision as tv
 from torch.nn import functional as F
 import PIL
 import warnings
+from tqdm import tqdm
+from torch.utils.data import dataloader
+import pandas as pd
+from pandas import DataFrame
 warnings.simplefilter(action='ignore', category=UserWarning)
 
 def configure_subparsers(subparsers):
@@ -85,6 +89,7 @@ class cAE(torch.nn.Module):
 class Competition_AE(CompetitionModel):
     def __init__(self, model, optim, loss, transform, name, dataset, epochs,channels=3):
         super().__init__(model, optim, loss, transform, name, dataset, epochs,channels)
+        self.acc_classes = {}
 
     def computeLoss(self,inputs,outputs,labels,truthLabels):
         return self.loss_f(inputs,outputs)+torch.nn.CrossEntropyLoss()(labels,truthLabels)
@@ -104,6 +109,63 @@ class Competition_AE(CompetitionModel):
             output = self.model(image)
             loss = self.computeLoss(image, output[0],output[2] ,labels)
         return loss
+    def evaluate(self, path_model):
+        test_ann = utils.get_path(
+            f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
+        test_path = utils.get_path(
+            f"../../datasets/{self.dataset}/validation/query")
+
+        test_data = CustomImageDataset(
+            annotations_file=test_ann,
+            img_dir=test_path,
+            transform=self.transform
+        )
+
+        test_dataloader = dataloader.DataLoader(
+            test_data, batch_size=1, shuffle=True)
+
+        self.model.load_state_dict(torch.load(path_model))
+
+        self.model.eval()
+        print("Evaluating data")
+        feats_gallery = self.scan_gallery(path_model)
+
+        for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
+            image, label, file_path = data
+            with torch.no_grad():
+                image_rec,features,classes_predicted = self.model(image)
+                class_predicted = torch.argmax(classes_predicted)
+                res = self.get_top10(features,class_predicted.item(), feats_gallery)
+                self.get_score(res, label.item())
+            # images = [Image.open(im) for im in res['path'].head(10)]
+            # images.insert(0, Image.open(file_path[0]))
+            # utils.display_images(images)
+            # print(res)
+
+        for key in self.score:
+            print(key)
+            print((self.score[key]*100) / len(test_dataloader))
+
+        print(self.score)
+    def get_top10(self, query_features,class_predicted, df_gallery: DataFrame):
+        top10 = pd.DataFrame(columns=['label', 'distance', 'path'])
+        for i, im in df_gallery.iterrows():
+            sim = self.calc_similarity(query_features, im['features'])
+            if(class_predicted != im['label']):
+                sim = sim + 0.3*sim
+            if(len(top10.index) < 10):
+                top10 = top10.append(pd.DataFrame({'label': [im['label']], 'distance': [
+                    sim], 'path': [im['path']]}), ignore_index=False)
+            else:
+                if(top10['distance'].iloc[-1] > sim):
+
+                    top10 = top10.head(-1)
+                    top10 = top10.append(pd.DataFrame({'label': [im['label']], 'distance': [
+                                         sim], 'path': [im['path']]}), ignore_index=False)
+            top10 = top10.sort_values(by=['distance'], ascending=True)
+        return top10
+
+
 
 def main(args):
     loss_function = torch.nn.MSELoss()
