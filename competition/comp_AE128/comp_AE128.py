@@ -167,9 +167,10 @@ def main(args):
                            model_transform, "comp_AE128", "new_animals", 3)
 
     if(args.test != None):
-        path_model = utils.get_path(
-            f"../../models/comp_AE128/comp_AE128-{args.test}.pth")
+        if args.test == "latest":
+            path_model = utils.get_latest_model("comp_AE128")
+        else:
+            path_model = utils.get_path(f"../../models/comp_AE128/comp_AE128-{args.test}.pth")
     else:
         path_model = model.train()
-
     model.evaluate(path_model)

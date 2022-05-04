@@ -67,7 +67,8 @@ class CompetitionModel():
         return features_gallery
 
     def calc_similarity(self, feats1, feats2):
-        return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
+        #return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
+        return distance.euclidean(feats1, feats2)
 
         # cosine similarity
         #return (numpy.dot(feats1, feats2) / (numpy.linalg.norm(feats1)*numpy.linalg.norm(feats2)))
