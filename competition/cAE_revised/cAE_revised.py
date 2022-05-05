@@ -168,7 +168,7 @@ class Competition_AE(CompetitionModel):
 
 
 def main(args):
-    loss_function = torch.nn.MSELoss()
+    loss_function = torch.nn.BCELoss()
 
     net = cAE()
     lr = 0.0001
