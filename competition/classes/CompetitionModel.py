@@ -48,7 +48,13 @@ class CompetitionModel():
         gallery_data = CustomImageDataset(
             annotations_file=gallery_ann,
             img_dir=gallery_path,
-            transform=self.transform
+            transform=tv.transforms.Compose([
+                            tv.transforms.Resize((112, 112)),
+                            tv.transforms.ToPILImage(),
+                            tv.transforms.ToTensor(),
+                            tv.transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]),
+                            tv.transforms.Grayscale(),
+                        ])
         )
 
         gallery_dataloader = dataloader.DataLoader(
@@ -178,7 +184,13 @@ class CompetitionModel():
         test_data = CustomImageDataset(
             annotations_file=test_ann,
             img_dir=test_path,
-            transform=self.transform
+            transform= tv.transforms.Compose([
+                            tv.transforms.Resize((112, 112)),
+                            tv.transforms.ToPILImage(),
+                            tv.transforms.ToTensor(),
+                            tv.transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]),
+                            tv.transforms.Grayscale(),
+                        ])
         )
 
         test_dataloader = dataloader.DataLoader(

@@ -168,7 +168,7 @@ class Competition_AE(CompetitionModel):
 
 
 def main(args):
-    loss_function = torch.nn.BCELoss()
+    loss_function = torch.nn.MSELoss()
 
     net = cAE()
     lr = 0.0001
@@ -178,11 +178,12 @@ def main(args):
 
     model_transform = tv.transforms.Compose([
         tv.transforms.Resize((112, 112)),
-        tv.transforms.Grayscale(),
         tv.transforms.RandomHorizontalFlip(),
         tv.transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
         tv.transforms.ToPILImage(),
-        tv.transforms.ToTensor()
+        tv.transforms.ToTensor(),
+        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]),
+        tv.transforms.Grayscale(),
     ])
 
     model = Competition_AE(net,optimizer,loss_function,model_transform,"cAE_revised","new_animals",50,channels=3)
