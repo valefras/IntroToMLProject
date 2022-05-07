@@ -171,7 +171,7 @@ def main(args):
     loss_function = torch.nn.MSELoss()
 
     net = cAE()
-    lr = 0.0001
+    lr = 0.00001
 
     optimizer = torch.optim.Adam(
         net.parameters(), lr=lr, weight_decay=1e-6,)
@@ -186,7 +186,7 @@ def main(args):
         tv.transforms.Grayscale(),
     ])
 
-    model = Competition_AE(net,optimizer,loss_function,model_transform,"cAE_revised","new_animals",50,channels=3)
+    model = Competition_AE(net,optimizer,loss_function,model_transform,"cAE_revised","new_animals",100,channels=3)
 
     if(args.test != None):
         if args.test == "latest":
