@@ -35,12 +35,12 @@ class comp_classifier(torch.nn.Module):
         super().__init__()
         self.conv1 = torch.nn.Conv2d(3, 32, 5, stride=2, padding=2) #channels 3, filter count 32, spatial extent 5
         self.conv2 = torch.nn.Conv2d(32, 64, 3, stride=2)
-        self.conv3 = torch.nn.Conv2d(64, 95, 3, stride=2)
-        self.conv4 = torch.nn.Conv2d(95,95,3)
+        self.conv3 = torch.nn.Conv2d(64, 94, 3, stride=2)
+        self.conv4 = torch.nn.Conv2d(94,94,3)
         self.avg = torch.nn.AvgPool2d(7)
         self.flatten = torch.nn.Flatten()
         self.drop = torch.nn.Dropout()
-        self.fc1 = torch.nn.Linear(95, 95)
+        self.fc1 = torch.nn.Linear(94, 94)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -78,11 +78,12 @@ def main(args):
         tv.transforms.RandomHorizontalFlip(),
         tv.transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
         tv.transforms.ToPILImage(),
-        tv.transforms.ToTensor()
+        tv.transforms.ToTensor(),
+        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
     ])
 
     model = Competition_classifier(
-        net, optimizer, loss_function, model_transform, "comp_classifier", "new_animals", 200)
+        net, optimizer, loss_function, model_transform, "comp_classifier", "animal_scraped", 200)
 
     if(args.test != None):
         if args.test == "latest":
