@@ -21,13 +21,14 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class CompetitionModel():
-    def __init__(self, model, optim, loss, transform, name, dataset, epochs, channels=3):
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, channels=3):
         self.model = model
         self.optimizer = optim
         self.loss_f = loss
         self.name = name
         self.dataset = dataset
         self.transform = transform
+        self.test_transform = test_transform
         self.epochs = epochs
         self.n_channels = channels
 
@@ -44,17 +45,12 @@ class CompetitionModel():
             f"../../datasets/{self.dataset}/validation/gallery")
         gallery_ann = utils.get_path(
             f"../../datasets/{self.dataset}/validation/gallery/labels_gallery.csv")
-
         gallery_data = CustomImageDataset(
             annotations_file=gallery_ann,
             img_dir=gallery_path,
-            transform=tv.transforms.Compose([
-                            tv.transforms.Resize((112, 112)),
-                            tv.transforms.ToPILImage(),
-                            tv.transforms.ToTensor(),
-                            tv.transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]),
-                            tv.transforms.Grayscale(),
-                        ])
+            transform=tv.transforms.Compose(
+                self.test_transform
+            )
         )
 
         gallery_dataloader = dataloader.DataLoader(
@@ -73,11 +69,11 @@ class CompetitionModel():
         return features_gallery
 
     def calc_similarity(self, feats1, feats2):
-        #return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
+        # return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
         return distance.euclidean(feats1, feats2)
 
         # cosine similarity
-        #return (numpy.dot(feats1, feats2) / (numpy.linalg.norm(feats1)*numpy.linalg.norm(feats2)))
+        # return (numpy.dot(feats1, feats2) / (numpy.linalg.norm(feats1)*numpy.linalg.norm(feats2)))
 
         # mahalanobis distance, NOT TESTED
         """ X = numpy.stack((feats1, feats2), axis=0)
@@ -141,14 +137,15 @@ class CompetitionModel():
         for i in range(self.epochs):
             self.model.train()
             for data in tqdm(train_loder, desc=f"{i+1} Epoch: ", ascii=" >>>>>>>>>="):
-                loss = self.fitModel(data,True)
+
+                loss = self.fitModel(data, True)
                 loss.backward()
                 self.optimizer.step()
 
             self.model.eval()
             running_loss = 0
             for data in tqdm(validation_loader, desc="Computing the model's validation error", ascii=" >>>>>>>>="):
-                self.fitModel(data,False)
+                self.fitModel(data, False)
                 running_loss += loss.item()
 
             print(
@@ -161,7 +158,7 @@ class CompetitionModel():
 
         return path_model
 
-    def fitModel(self,data,isTraining):
+    def fitModel(self, data, isTraining):
 
         image, labels, img_path = data
 
@@ -175,6 +172,7 @@ class CompetitionModel():
             output = self.model(image)
             loss = self.computeLoss(image, output[0], labels)
         return loss
+
     def evaluate(self, path_model):
         test_ann = utils.get_path(
             f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
@@ -184,13 +182,9 @@ class CompetitionModel():
         test_data = CustomImageDataset(
             annotations_file=test_ann,
             img_dir=test_path,
-            transform= tv.transforms.Compose([
-                            tv.transforms.Resize((112, 112)),
-                            tv.transforms.ToPILImage(),
-                            tv.transforms.ToTensor(),
-                            tv.transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]),
-                            tv.transforms.Grayscale(),
-                        ])
+            transform=tv.transforms.Compose([
+                self.test_transform
+            ])
         )
 
         test_dataloader = dataloader.DataLoader(
@@ -202,16 +196,21 @@ class CompetitionModel():
         print("Evaluating data")
         feats_gallery = self.scan_gallery(path_model)
 
+        # for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
+        #     image, label, file_path = data
+        #     with torch.no_grad():
+        #         res = self.get_top10(self.model(
+        #             image)[1].numpy()[0], feats_gallery)
+        #         self.get_score(res, label.item())
+
         for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
             image, label, file_path = data
             with torch.no_grad():
-                res = self.get_top10(self.model(
-                    image)[1].numpy()[0], feats_gallery)
+                res = self.model(image)
+                feats = res[1].numpy()[0]
+                utils.imshow(res[0])
+                res = self.get_top10(feats, feats_gallery)
                 self.get_score(res, label.item())
-            # images = [Image.open(im) for im in res['path'].head(10)]
-            # images.insert(0, Image.open(file_path[0]))
-            # utils.display_images(images)
-            # print(res)
 
         for key in self.score:
             print(key)

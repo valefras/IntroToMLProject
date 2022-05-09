@@ -30,6 +30,7 @@ def createLabelsCsv(ds_path, csv_name):
 
     return labels
 
+
 def get_latest_model(model_name):
     model_path = get_path(f'../../models/{model_name}')
     folder_walk = os.walk(model_path)
@@ -64,5 +65,11 @@ def display_images(
             title = textwrap.wrap(title, label_wrap_length)
             title = "\n".join(title)
             plt.title(title, fontsize=label_font_size)
-    
+
+    plt.show()
+
+
+def imshow(img):
+    npimg = img.numpy()[0]
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
     plt.show()

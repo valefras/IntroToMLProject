@@ -33,10 +33,11 @@ def configure_subparsers(subparsers):
 class comp_classifier(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = torch.nn.Conv2d(3, 32, 5, stride=2, padding=2) #channels 3, filter count 32, spatial extent 5
+        # channels 3, filter count 32, spatial extent 5
+        self.conv1 = torch.nn.Conv2d(3, 32, 5, stride=2, padding=2)
         self.conv2 = torch.nn.Conv2d(32, 64, 3, stride=2)
         self.conv3 = torch.nn.Conv2d(64, 94, 3, stride=2)
-        self.conv4 = torch.nn.Conv2d(94,94,3)
+        self.conv4 = torch.nn.Conv2d(94, 94, 3)
         self.avg = torch.nn.AvgPool2d(7)
         self.flatten = torch.nn.Flatten()
         self.drop = torch.nn.Dropout()
@@ -56,8 +57,9 @@ class comp_classifier(torch.nn.Module):
 
 
 class Competition_classifier(CompetitionModel):
-    def __init__(self, model, optim, loss, transform, name, dataset, epochs):
-        super().__init__(model, optim, loss, transform, name, dataset, epochs)
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs):
+        super().__init__(model, optim, loss, transform,
+                         test_transform, name, dataset, epochs)
 
     def computeLoss(self, inputs, outputs, labels):
         return self.loss_f(outputs, labels)
@@ -79,17 +81,27 @@ def main(args):
         tv.transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
         tv.transforms.ToPILImage(),
         tv.transforms.ToTensor(),
-        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                0.229, 0.224, 0.225])
+    ])
+
+    test_transform = tv.transforms.Compose([
+        tv.transforms.Resize((84, 84)),
+        tv.transforms.ToPILImage(),
+        tv.transforms.ToTensor(),
+        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                0.229, 0.224, 0.225])
     ])
 
     model = Competition_classifier(
-        net, optimizer, loss_function, model_transform, "comp_classifier", "animal_scraped", 200)
+        net, optimizer, loss_function, model_transform, test_transform, "comp_classifier", "animal_scraped", 200)
 
     if(args.test != None):
         if args.test == "latest":
             path_model = utils.get_latest_model("comp_classifier")
         else:
-            path_model = utils.get_path(f"../../models/comp_classifier/comp_classifier-{args.test}.pth")
+            path_model = utils.get_path(
+                f"../../models/comp_classifier/comp_classifier-{args.test}.pth")
     else:
         path_model = model.train()
     model.evaluate(path_model)

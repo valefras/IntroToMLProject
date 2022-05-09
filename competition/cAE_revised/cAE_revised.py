@@ -19,6 +19,7 @@ import pandas as pd
 from pandas import DataFrame
 warnings.simplefilter(action='ignore', category=UserWarning)
 
+
 def configure_subparsers(subparsers):
     r"""Configure a new subparser for our second solution of the competition.
     Args:
@@ -39,30 +40,35 @@ def configure_subparsers(subparsers):
 
 
 class cAE(torch.nn.Module):
-    def __init__(self,train=True):
+    def __init__(self, train=True):
         super().__init__()
 
         self.is_training = train
 
-        self.conv1 = torch.nn.Conv2d(1, 32, 5,stride=2) # -> 110x110x32
-        self.conv2 = torch.nn.Conv2d(32, 64, 3,stride=2,padding=2) # -> 56x56x64
-        self.conv4 = torch.nn.Conv2d(64,128,3) # -> 25x25x128
-        self.conv5 = torch.nn.Conv2d(128,128,3,stride=3) # -> 8x8x128
-        self.avg = torch.nn.AvgPool2d(8) # -> 1x1x128
+        self.conv1 = torch.nn.Conv2d(1, 32, 5, stride=2)  # -> 110x110x32
+        self.conv2 = torch.nn.Conv2d(
+            32, 64, 3, stride=2, padding=2)  # -> 56x56x64
+        self.conv4 = torch.nn.Conv2d(64, 128, 3)  # -> 25x25x128
+        self.conv5 = torch.nn.Conv2d(128, 128, 3, stride=3)  # -> 8x8x128
+        self.avg = torch.nn.AvgPool2d(8)  # -> 1x1x128
         self.flat = torch.nn.Flatten()
         self.drop = torch.nn.Dropout()
-        self.fc1 = torch.nn.Linear(128,128)
+        self.fc1 = torch.nn.Linear(128, 128)
 
+        self.classLayer = torch.nn.Linear(128, 95)
 
-        self.classLayer = torch.nn.Linear(128,95)
-
-        self.fc2 = torch.nn.Linear(128,128) # -> 128
-        self.unflat = torch.nn.Unflatten(dim=1,unflattened_size=(128,1,1)) # -> 1x1x128
-        self.avg2 = torch.nn.AdaptiveAvgPool2d((8,8)) # -> 8x8x128
-        self.conv6 = torch.nn.ConvTranspose2d(128,128,3,stride=3,output_padding=(1,1)) # -> 25x25x128
-        self.conv7 = torch.nn.ConvTranspose2d(128,64,3,dilation=2,padding=1,output_padding=(1,1)) # -> 28x28x128
-        self.conv9 = torch.nn.ConvTranspose2d(64,32,3,stride=2,padding=2,output_padding=(1,1)) # -> 110x110x32
-        self.conv10 = torch.nn.ConvTranspose2d(32,1,5,stride=2,output_padding=(1,1)) # -> 224x244x3
+        self.fc2 = torch.nn.Linear(128, 128)  # -> 128
+        self.unflat = torch.nn.Unflatten(
+            dim=1, unflattened_size=(128, 1, 1))  # -> 1x1x128
+        self.avg2 = torch.nn.AdaptiveAvgPool2d((8, 8))  # -> 8x8x128
+        self.conv6 = torch.nn.ConvTranspose2d(
+            128, 128, 3, stride=3, output_padding=(1, 1))  # -> 25x25x128
+        self.conv7 = torch.nn.ConvTranspose2d(
+            128, 64, 3, dilation=2, padding=1, output_padding=(1, 1))  # -> 28x28x128
+        self.conv9 = torch.nn.ConvTranspose2d(
+            64, 32, 3, stride=2, padding=2, output_padding=(1, 1))  # -> 110x110x32
+        self.conv10 = torch.nn.ConvTranspose2d(
+            32, 1, 5, stride=2, output_padding=(1, 1))  # -> 224x244x3
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -85,30 +91,36 @@ class cAE(torch.nn.Module):
         x = F.relu(self.conv9(x))
         x = F.relu(self.conv10(x))
 
-        return x, features,classes
+        return x, features, classes
+
+
 class Competition_AE(CompetitionModel):
-    def __init__(self, model, optim, loss, transform, name, dataset, epochs,channels=3):
-        super().__init__(model, optim, loss, transform, name, dataset, epochs,channels)
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, channels=3):
+        super().__init__(model, optim, loss, transform,
+                         test_transform, name, dataset, epochs, channels)
         self.acc_classes = {}
 
-    def computeLoss(self,inputs,outputs,labels,truthLabels):
-        return self.loss_f(inputs,outputs)+torch.nn.CrossEntropyLoss()(labels,truthLabels)
+    def computeLoss(self, inputs, outputs, labels, truthLabels):
+        return self.loss_f(inputs, outputs)+torch.nn.CrossEntropyLoss()(labels, truthLabels)
+
     def calc_similarity(self, feats1, feats2):
         return numpy.linalg.norm(feats1-feats2)
         # return numpy.dot(feats1,feats2) / (numpy.linalg.norm(feats1) * numpy.linalg.norm(feats2))
-    def fitModel(self,data,isTraining):
+
+    def fitModel(self, data, isTraining):
         image, labels, img_path = data
 
         if(not(isTraining)):
             with torch.no_grad():
                 output = self.model(image)
-                loss = self.computeLoss(image, output[0], output[2],labels)
+                loss = self.computeLoss(image, output[0], output[2], labels)
 
         else:
             self.optimizer.zero_grad()
             output = self.model(image)
-            loss = self.computeLoss(image, output[0],output[2] ,labels)
+            loss = self.computeLoss(image, output[0], output[2], labels)
         return loss
+
     def evaluate(self, path_model):
         test_ann = utils.get_path(
             f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
@@ -118,7 +130,7 @@ class Competition_AE(CompetitionModel):
         test_data = CustomImageDataset(
             annotations_file=test_ann,
             img_dir=test_path,
-            transform=self.transform
+            transform=self.test_transform
         )
 
         test_dataloader = dataloader.DataLoader(
@@ -133,9 +145,10 @@ class Competition_AE(CompetitionModel):
         for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
             image, label, file_path = data
             with torch.no_grad():
-                image_rec,features,classes_predicted = self.model(image)
+                image_rec, features, classes_predicted = self.model(image)
                 class_predicted = torch.argmax(classes_predicted)
-                res = self.get_top10(features,class_predicted.item(), feats_gallery)
+                res = self.get_top10(
+                    features, class_predicted.item(), feats_gallery)
                 self.get_score(res, label.item())
             # images = [Image.open(im) for im in res['path'].head(10)]
             # images.insert(0, Image.open(file_path[0]))
@@ -147,7 +160,8 @@ class Competition_AE(CompetitionModel):
             print((self.score[key]*100) / len(test_dataloader))
 
         print(self.score)
-    def get_top10(self, query_features,class_predicted, df_gallery: DataFrame):
+
+    def get_top10(self, query_features, class_predicted, df_gallery: DataFrame):
         top10 = pd.DataFrame(columns=['label', 'distance', 'path'])
         for i, im in df_gallery.iterrows():
             sim = self.calc_similarity(query_features, im['features'])
@@ -166,7 +180,6 @@ class Competition_AE(CompetitionModel):
         return top10
 
 
-
 def main(args):
     loss_function = torch.nn.MSELoss()
 
@@ -182,17 +195,28 @@ def main(args):
         tv.transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
         tv.transforms.ToPILImage(),
         tv.transforms.ToTensor(),
-        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]),
+        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                0.229, 0.224, 0.225]),
         tv.transforms.Grayscale(),
     ])
 
-    model = Competition_AE(net,optimizer,loss_function,model_transform,"cAE_revised","new_animals",100,channels=3)
+    test_transform = tv.transforms.Compose([
+        tv.transforms.Resize((112, 112)),
+        tv.transforms.ToTensor(),
+        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                0.229, 0.224, 0.225]),
+        tv.transforms.Grayscale(),
+    ])
+
+    model = Competition_AE(net, optimizer, loss_function, model_transform, test_transform,
+                           "cAE_revised", "new_animals", 100, channels=3)
 
     if(args.test != None):
         if args.test == "latest":
             path_model = utils.get_latest_model("cAE_revised")
         else:
-            path_model = utils.get_path(f"../../models/cAE_revised/cAE_revised-{args.test}.pth")
+            path_model = utils.get_path(
+                f"../../models/cAE_revised/cAE_revised-{args.test}.pth")
     else:
         path_model = model.train()
     model.evaluate(path_model)

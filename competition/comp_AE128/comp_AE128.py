@@ -139,8 +139,9 @@ class comp_AE128(torch.nn.Module):
 
 
 class Competition_AE(CompetitionModel):
-    def __init__(self, model, optim, loss, transform, name, dataset, epochs, channels=3):
-        super().__init__(model, optim, loss, transform, name, dataset, epochs, channels)
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, channels=3):
+        super().__init__(model, optim, loss, transform,
+                         test_transform, name, dataset, epochs, channels)
 
     def computeLoss(self, inputs, outputs, labels):
         return self.loss_f(inputs, outputs)
@@ -163,14 +164,21 @@ def main(args):
         tv.transforms.ToTensor()
     ])
 
+    test_transform = tv.transforms.Compose([
+        tv.transforms.Resize((128, 128)),
+        tv.transforms.ToPILImage(),
+        tv.transforms.ToTensor()
+    ])
+
     model = Competition_AE(net, optimizer, loss_function,
-                           model_transform, "comp_AE128", "new_animals", 3)
+                           model_transform, test_transform, "comp_AE128", "animal_scraped", 3)
 
     if(args.test != None):
         if args.test == "latest":
             path_model = utils.get_latest_model("comp_AE128")
         else:
-            path_model = utils.get_path(f"../../models/comp_AE128/comp_AE128-{args.test}.pth")
+            path_model = utils.get_path(
+                f"../../models/comp_AE128/comp_AE128-{args.test}.pth")
     else:
         path_model = model.train()
     model.evaluate(path_model)
