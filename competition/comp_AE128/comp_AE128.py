@@ -171,7 +171,7 @@ def main(args):
     ])
 
     model = Competition_AE(net, optimizer, loss_function,
-                           model_transform, test_transform, "comp_AE128", "animal_scraped", 3)
+                           model_transform, test_transform, "comp_AE128", "animal_scraped", 4)
 
     if(args.test != None):
         if args.test == "latest":

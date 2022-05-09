@@ -48,9 +48,7 @@ class CompetitionModel():
         gallery_data = CustomImageDataset(
             annotations_file=gallery_ann,
             img_dir=gallery_path,
-            transform=tv.transforms.Compose(
-                self.test_transform
-            )
+            transform=self.test_transform
         )
 
         gallery_dataloader = dataloader.DataLoader(
@@ -182,9 +180,8 @@ class CompetitionModel():
         test_data = CustomImageDataset(
             annotations_file=test_ann,
             img_dir=test_path,
-            transform=tv.transforms.Compose([
-                self.test_transform
-            ])
+            transform=self.test_transform
+
         )
 
         test_dataloader = dataloader.DataLoader(
