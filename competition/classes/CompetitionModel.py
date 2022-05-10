@@ -205,9 +205,14 @@ class CompetitionModel():
             with torch.no_grad():
                 res = self.model(image)
                 feats = res[1].numpy()[0]
-                utils.imshow(res[0])
+                #utils.imshow(res[0])
                 res = self.get_top10(feats, feats_gallery)
                 self.get_score(res, label.item())
+                '''
+                images = [Image.open(im) for im in res['path'].head(10)]
+                images.insert(0, Image.open(file_path[0]))
+                utils.display_images(images)
+                '''
 
         for key in self.score:
             print(key)
