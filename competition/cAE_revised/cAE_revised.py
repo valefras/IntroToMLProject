@@ -197,14 +197,7 @@ class Competition_AE(CompetitionModel):
         self.model.eval()
         print("Evaluating data")
         feats_gallery = self.scan_gallery(path_model)
-        for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
-            image, label, file_path = data
-            with torch.no_grad():
-                res = self.model(image)
-                feats = res[1].numpy()[0]
-                utils.imshow(res[0])
-                res = self.get_top10(feats,label,feats_gallery)
-                self.get_score(res, label.item())
+
         images_to_plot = []
         for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
             image, label, file_path = data
