@@ -17,6 +17,7 @@ import pandas as pd
 from PIL import Image
 import abc
 import warnings
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
@@ -37,6 +38,7 @@ class CompetitionModel():
             'top5': 0,
             'top10': 0
         }
+
 
     def scan_gallery(self, path_model):
         utils.createLabelsCsv(
@@ -154,6 +156,8 @@ class CompetitionModel():
                 min_val_error = running_loss
                 path_model = self.save_weights()
 
+            if(self.ELR != None):
+                self.ELR.step()
         return path_model
 
     def fitModel(self, data, isTraining):
