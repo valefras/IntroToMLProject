@@ -22,7 +22,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class CompetitionModel():
-    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, channels=3):
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, resnet = False, pretrained = False, channels=3):
         self.model = model
         self.optimizer = optim
         self.loss_f = loss
@@ -32,6 +32,8 @@ class CompetitionModel():
         self.test_transform = test_transform
         self.epochs = epochs
         self.n_channels = channels
+        self.resnet = resnet
+        self.pretrained = pretrained
 
         self.score = {
             'top1': 0,
@@ -40,7 +42,7 @@ class CompetitionModel():
         }
 
 
-    def scan_gallery(self, path_model):
+    def scan_gallery(self, path_model = None):
         utils.createLabelsCsv(
             f"../../datasets/{self.dataset}/validation/gallery", "labels_gallery.csv")
         gallery_path = utils.get_path(
@@ -56,15 +58,20 @@ class CompetitionModel():
         gallery_dataloader = dataloader.DataLoader(
             gallery_data, batch_size=1, shuffle=False)
 
-        self.model.load_state_dict(torch.load(path_model))
+        if not(self.resnet and self.pretrained):
+            self.model.load_state_dict(torch.load(path_model))
 
         features_gallery = pd.DataFrame(columns=['label', 'features', 'path'])
 
         for data in tqdm(gallery_dataloader, desc="Extracting features from the gallery", ascii=" >>>>>>>>="):
             image, label, file_path = data
             with torch.no_grad():
-                features_gallery = features_gallery.append(pd.DataFrame({'label': label.item(), 'features': [
+                if not self.resnet:
+                    features_gallery = features_gallery.append(pd.DataFrame({'label': label.item(), 'features': [
                                                            self.model(image)[1].numpy()[0]], 'path': file_path[0]}), ignore_index=False)
+                else:
+                    features_gallery = features_gallery.append(pd.DataFrame({'label': label.item(), 'features': [
+                                                           self.model(image).numpy()[0]], 'path': file_path[0]}), ignore_index=False)
 
         return features_gallery
 
@@ -155,9 +162,8 @@ class CompetitionModel():
                 print("Got better validation error, saving model's weight\n")
                 min_val_error = running_loss
                 path_model = self.save_weights()
-
-            if(self.ELR != None):
-                self.ELR.step()
+                if(self.ELR != None):
+                    self.ELR.step()
         return path_model
 
     def fitModel(self, data, isTraining):
@@ -175,7 +181,7 @@ class CompetitionModel():
             loss = self.computeLoss(image, output[0], labels)
         return loss
 
-    def evaluate(self, path_model):
+    def evaluate(self, path_model = None):
         test_ann = utils.get_path(
             f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
         test_path = utils.get_path(
@@ -191,7 +197,8 @@ class CompetitionModel():
         test_dataloader = dataloader.DataLoader(
             test_data, batch_size=1, shuffle=True)
 
-        self.model.load_state_dict(torch.load(path_model))
+        if not(self.resnet and self.pretrained):
+            self.model.load_state_dict(torch.load(path_model))
 
         self.model.eval()
         print("Evaluating data")
@@ -208,10 +215,18 @@ class CompetitionModel():
             image, label, file_path = data
             with torch.no_grad():
                 res = self.model(image)
-                feats = res[1].numpy()[0]
-                utils.imshow(res[0])
+                if not self.resnet:
+                    feats = res[1].numpy()[0]
+                else:
+                    feats = res.numpy()[0]
+                #utils.imshow(res[0])
                 res = self.get_top10(feats, feats_gallery)
                 self.get_score(res, label.item())
+                '''
+                images = [Image.open(im) for im in res['path'].head(10)]
+                images.insert(0, Image.open(file_path[0]))
+                utils.display_images(images)
+                '''
 
         for key in self.score:
             print(key)

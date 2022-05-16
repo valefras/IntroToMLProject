@@ -306,7 +306,7 @@ def main(args):
 
     print(summary(net,(1,112,112)))
     model = Competition_AE(net, optimizer, loss_function, model_transform, test_transform,
-                           "cAE_revised", "scraped_2", 100,desired_dim = (1,112,112), channels=3)
+                           "cAE_revised", "scraped_fixed", 100,desired_dim = (1,112,112), channels=3)
 
     if(args.test != None):
         if args.test == "latest":
