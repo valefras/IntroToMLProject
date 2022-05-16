@@ -58,28 +58,9 @@ class comp_AE128(torch.nn.Module):
         # 2x2x1024
         self.pool4 = torch.nn.MaxPool2d(2, 2, return_indices=True)
         # 1x1x1024
-        # self.conv5 = torch.nn.Conv2d(128, 256, 5)
-        # # 6x6x256
-        # self.pool4 = torch.nn.MaxPool2d(2, 2, return_indices=True)
-        # # 3x3x256
-        # self.conv6 = torch.nn.Conv2d(256, 512, 3)
-        # # 1x1x512
-
         self.flatten = torch.nn.Flatten()
         self.fc1 = torch.nn.Linear(1024, 1024)
-       # self.fc2 = torch.nn.Linear(1024, 1024)
-        # # self.fc3 = torch.nn.Linear(5000, 1000)
-        # # self.fc4 = torch.nn.Linear(500, 250)
-        # # self.fc5 = torch.nn.Linear(250, 100)
-        # # self.fc6 = torch.nn.Linear(100, 50)
-
-        # # self.fc7 = torch.nn.Linear(50, 100)
-        # # self.fc8 = torch.nn.Linear(100, 250)
-        # # self.fc9 = torch.nn.Linear(250, 500)
-        # # self.fc10 = torch.nn.Linear(1000, 5000)
-        # self.fc11 = torch.nn.Linear(500, 1000)
         self.fc12 = torch.nn.Linear(1024, 1024)
-
         self.unflatten = torch.nn.Unflatten(
             dim=1, unflattened_size=(1024, 1, 1))
         self.pool5 = torch.nn.MaxUnpool2d(2, 2)
@@ -108,16 +89,11 @@ class comp_AE128(torch.nn.Module):
         # x = F.relu(self.fc2(x))
         #x = F.relu(self.fc3(x))
         # x = F.relu(self.fc4(x))
-        # x = F.relu(self.fc5(x))
-        # x = F.relu(self.fc6(x))
 
         features = x
-
         # x = F.relu(self.fc7(x))
         # x = F.relu(self.fc8(x))
         # x = F.relu(self.fc9(x))
-        #x = F.relu(self.fc10(x))
-        # x = F.relu(self.fc11(x))
         x = F.relu(self.fc12(x))
         x = self.pool5(self.unflatten(x), indices4)
         x = F.relu(self.conv8(x))
@@ -128,13 +104,6 @@ class comp_AE128(torch.nn.Module):
         x = F.relu(self.conv13(x))
         x = F.relu(self.conv14(x))
 
-        # x = self.unflatten(x)
-        # x = self.pool5(F.relu(self.conv7(x)), indices4)
-        # x = self.pool6(F.relu(self.conv8(x)), indices3)
-        # x = F.relu(self.conv9(x))
-        # x = self.pool7(F.relu(self.conv10(x)), indices2)
-        # x = self.pool8(F.relu(self.conv11(x)), indices1)
-        # x = F.relu(self.conv12(x))
         return x, features
 
 
@@ -171,7 +140,7 @@ def main(args):
     ])
 
     model = Competition_AE(net, optimizer, loss_function,
-                           model_transform, test_transform, "comp_AE128", "animal_scraped", 4)
+                           model_transform, test_transform, "comp_AE128", "scraped_fixed", 10)
 
     if(args.test != None):
         if args.test == "latest":
