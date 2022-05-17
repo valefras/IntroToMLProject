@@ -11,6 +11,9 @@ from competition.resnet34 import resnet34
 from competition.resnet50 import resnet50
 from competition.resnet101 import resnet101
 from competition.resnet152 import resnet152
+from competition.convnext_tiny import convnext_tiny
+from competition.efficientnet_b2 import efficientnet_b2
+
 
 def get_args():
     r"""Parse command line arguments."""
@@ -30,11 +33,14 @@ def get_args():
     comp_AE128.configure_subparsers(subparsers)
     cAE_revised.configure_subparsers(subparsers)
     comp_classifier_2.configure_subparsers(subparsers)
+    convnext_tiny.configure_subparsers(subparsers)
     resnet18.configure_subparsers(subparsers)
     resnet34.configure_subparsers(subparsers)
     resnet50.configure_subparsers(subparsers)
     resnet101.configure_subparsers(subparsers)
     resnet152.configure_subparsers(subparsers)
+    efficientnet_b2.configure_subparsers(subparsers)
+
     # parsing arguments
     parsed_args = parser.parse_args()
 

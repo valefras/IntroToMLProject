@@ -94,7 +94,7 @@ def main(args):
     ])
 
     model = Competition_classifier(
-        net, optimizer, loss_function, model_transform, test_transform, "comp_classifier", "animal_scraped", 200)
+        net, optimizer, loss_function, model_transform, test_transform, "comp_classifier", "scraped_fixed", 200)
 
     if(args.test != None):
         if args.test == "latest":

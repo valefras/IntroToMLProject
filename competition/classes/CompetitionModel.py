@@ -22,7 +22,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class CompetitionModel():
-    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, resnet = False, pretrained = False, channels=3):
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, resnet=False, pretrained=False, channels=3):
         self.model = model
         self.optimizer = optim
         self.loss_f = loss
@@ -41,8 +41,7 @@ class CompetitionModel():
             'top10': 0
         }
 
-
-    def scan_gallery(self, path_model = None):
+    def scan_gallery(self, path_model=None):
         utils.createLabelsCsv(
             f"../../datasets/{self.dataset}/validation/gallery", "labels_gallery.csv")
         gallery_path = utils.get_path(
@@ -68,10 +67,10 @@ class CompetitionModel():
             with torch.no_grad():
                 if not self.resnet:
                     features_gallery = features_gallery.append(pd.DataFrame({'label': label.item(), 'features': [
-                                                           self.model(image)[1].numpy()[0]], 'path': file_path[0]}), ignore_index=False)
+                        self.model(image)[1].numpy()[0]], 'path': file_path[0]}), ignore_index=False)
                 else:
                     features_gallery = features_gallery.append(pd.DataFrame({'label': label.item(), 'features': [
-                                                           self.model(image).numpy()[0]], 'path': file_path[0]}), ignore_index=False)
+                        self.model(image).numpy()[0]], 'path': file_path[0]}), ignore_index=False)
 
         return features_gallery
 
@@ -173,15 +172,16 @@ class CompetitionModel():
         if(not(isTraining)):
             with torch.no_grad():
                 output = self.model(image)
-                loss = self.computeLoss(image, output[0], labels)
 
         else:
             self.optimizer.zero_grad()
             output = self.model(image)
-            loss = self.computeLoss(image, output[0], labels)
-        return loss
+        if self.resnet:
+            return self.computeLoss(image, output, labels)
 
-    def evaluate(self, path_model = None):
+        return self.computeLoss(image, output[0], labels)
+
+    def evaluate(self, path_model=None):
         test_ann = utils.get_path(
             f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
         test_path = utils.get_path(
@@ -219,7 +219,7 @@ class CompetitionModel():
                     feats = res[1].numpy()[0]
                 else:
                     feats = res.numpy()[0]
-                #utils.imshow(res[0])
+                # utils.imshow(res[0])
                 res = self.get_top10(feats, feats_gallery)
                 self.get_score(res, label.item())
                 '''
@@ -239,15 +239,15 @@ class CompetitionModel():
         top10_vals = top10.label.values
         if(top10_vals[0] == query_label):
             self.score['top1'] += 1
-            self.score['top5'] += 1
-            self.score['top10'] += 1
+            #self.score['top5'] += 1
+            #self.score['top10'] += 1
         # check top 5
-        if(query_label in top10_vals[1:5]):
+        if(query_label in top10_vals[:5]):
             self.score['top5'] += 1
-            self.score['top10'] += 1
+            #self.score['top10'] += 1
 
         # check top 10
-        if(query_label in top10_vals[5:]):
+        if(query_label in top10_vals):
             self.score['top10'] += 1
 
     def save_weights(self):
@@ -260,4 +260,4 @@ class CompetitionModel():
 
     @abc.abstractmethod
     def computeLoss(self, inputs, outputs, labels):
-        return  # self.loss_f(inputs,outputs,labels)
+        return self.loss_f(inputs, outputs, labels)
