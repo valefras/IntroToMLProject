@@ -2,7 +2,6 @@ import torch
 from torch.optim.adam import Adam
 from torchvision import transforms
 from competition.classes.CompetitionModel import CompetitionModel
-from competition.resnet152.resnet152 import resnet152
 from competition.utils import utils
 from competition.utils.CustomDataset import CustomImageDataset
 import torchvision as tv
@@ -32,10 +31,10 @@ def configure_subparsers(subparsers):
     parser.set_defaults(func=main)
 
 
-class resnet152(CompetitionModel):
-    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, resnet, pretrained):
+class efficientnet_b2(CompetitionModel):
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, premade, pretrained):
         super().__init__(model, optim, loss, transform,
-                         test_transform, name, dataset, epochs, resnet, pretrained)
+                         test_transform, name, dataset, epochs, premade, pretrained)
 
     def computeLoss(self, inputs, outputs, labels):
         return self.loss_f(outputs, labels)
@@ -71,7 +70,7 @@ def main(args):
     optimizer = torch.optim.Adam(
         net.parameters(), lr=lr, weight_decay=1e-8)
 
-    model = resnet152(net,
+    model = efficientnet_b2(net,
                       optimizer, loss_function, model_transform, test_transform, "efficientnet_b2", "scraped_fixed", 100, True, pretrained)
 
     if(args.test != None):

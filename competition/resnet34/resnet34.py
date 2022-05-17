@@ -32,9 +32,9 @@ def configure_subparsers(subparsers):
 
 
 class resnet34(CompetitionModel):
-    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, resnet, pretrained):
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, premade, pretrained):
         super().__init__(model, optim, loss, transform,
-                         test_transform, name, dataset, epochs, resnet, pretrained)
+                         test_transform, name, dataset, epochs, premade, pretrained)
 
     def computeLoss(self, inputs, outputs, labels):
         return self.loss_f(outputs, labels)

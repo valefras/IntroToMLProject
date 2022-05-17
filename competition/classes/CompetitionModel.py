@@ -22,7 +22,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class CompetitionModel():
-    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, resnet=False, pretrained=False, channels=3):
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, premade=False, pretrained=False, channels=3):
         self.model = model
         self.optimizer = optim
         self.loss_f = loss
@@ -32,7 +32,7 @@ class CompetitionModel():
         self.test_transform = test_transform
         self.epochs = epochs
         self.n_channels = channels
-        self.resnet = resnet
+        self.premade = premade
         self.pretrained = pretrained
 
         self.score = {
@@ -57,7 +57,7 @@ class CompetitionModel():
         gallery_dataloader = dataloader.DataLoader(
             gallery_data, batch_size=1, shuffle=False)
 
-        if not(self.resnet and self.pretrained):
+        if not(self.premade and self.pretrained):
             self.model.load_state_dict(torch.load(path_model))
 
         features_gallery = pd.DataFrame(columns=['label', 'features', 'path'])
@@ -65,7 +65,7 @@ class CompetitionModel():
         for data in tqdm(gallery_dataloader, desc="Extracting features from the gallery", ascii=" >>>>>>>>="):
             image, label, file_path = data
             with torch.no_grad():
-                if not self.resnet:
+                if not self.premade:
                     features_gallery = features_gallery.append(pd.DataFrame({'label': label.item(), 'features': [
                         self.model(image)[1].numpy()[0]], 'path': file_path[0]}), ignore_index=False)
                 else:
@@ -136,8 +136,13 @@ class CompetitionModel():
 
         self.model.to(device=device)
 
-        min_val_error = float("inf")
         path_model = ""
+        if self.pretrained:
+            path_model = utils.get_latest_model(self.name)
+            self.model.load_state_dict(torch.load(path_model))
+            print("Loaded latest weights")
+
+        min_val_error = float("inf")
         if not os.path.exists(utils.get_path(f"../../models/{self.name}/")):
             os.makedirs(utils.get_path(f"../../models/{self.name}/"))
         for i in range(self.epochs):
@@ -176,7 +181,7 @@ class CompetitionModel():
         else:
             self.optimizer.zero_grad()
             output = self.model(image)
-        if self.resnet:
+        if self.premade:
             return self.computeLoss(image, output, labels)
 
         return self.computeLoss(image, output[0], labels)
@@ -197,7 +202,7 @@ class CompetitionModel():
         test_dataloader = dataloader.DataLoader(
             test_data, batch_size=1, shuffle=True)
 
-        if not(self.resnet and self.pretrained):
+        if not(self.premade and self.pretrained):
             self.model.load_state_dict(torch.load(path_model))
 
         self.model.eval()
@@ -215,7 +220,7 @@ class CompetitionModel():
             image, label, file_path = data
             with torch.no_grad():
                 res = self.model(image)
-                if not self.resnet:
+                if not self.premade:
                     feats = res[1].numpy()[0]
                 else:
                     feats = res.numpy()[0]
