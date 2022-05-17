@@ -71,7 +71,4 @@ def main(args):
                     f"../../models/resnet18/resnet18-{args.test}.pth")
     else:
         path_model = model.train()
-    if not pretrained:
-        model.evaluate(path_model)
-    else:
-        model.evaluate()
+    model.evaluate(path_model)

@@ -82,7 +82,4 @@ def main(args):
                     f"../../models/efficientnet_b2/efficientnet_b2-{args.test}.pth")
     else:
         path_model = model.train()
-    if not pretrained:
-        model.evaluate(path_model)
-    else:
-        model.evaluate()
+    model.evaluate(path_model)
