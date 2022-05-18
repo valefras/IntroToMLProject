@@ -71,7 +71,7 @@ def main(args):
         net.parameters(), lr=lr, weight_decay=1e-8)
 
     model = efficientnet_b2(net,
-                      optimizer, loss_function, model_transform, test_transform, "efficientnet_b2", "scraped_fixed", 100, True, pretrained)
+                            optimizer, loss_function, model_transform, test_transform, "efficientnet_b2", "scraped_fixed", 5, True, pretrained)
 
     if(args.test != None):
         if args.test == "latest":
