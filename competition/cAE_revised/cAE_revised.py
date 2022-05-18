@@ -110,15 +110,15 @@ class cAE(torch.nn.Module):
         x = self.fc1(x)
         features = x
 
-        classes = self.classLayer(features)
+        classes = F.softmax(self.classLayer(features))
 
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
         x = self.unflat(x)
         x = self.avg2(x)
-        x = self.conv5(x)
-        x = self.conv6(x)
-        x = self.conv7(x)
-        x = self.conv8(x)
+        x = F.relu(self.conv5(x))
+        x = F.relu(self.conv6(x))
+        x = F.relu(self.conv7(x))
+        x = F.sigmoid(self.conv8(x))
 
 
 
@@ -148,18 +148,14 @@ class cAE(torch.nn.Module):
 
 
 class Competition_AE(CompetitionModel):
-    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs,desired_dim = (3,224,224), channels=3):
+    def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, channels=3,premade=False):
         super().__init__(model, optim, loss, transform,
-                         test_transform, name, dataset, epochs, channels)
+                         test_transform, name, dataset, epochs,premade,False, channels)
         self.acc_classes = {}
         self.ELR = ExponentialLR(optimizer=self.optimizer,gamma=0.95, verbose = True)
 
     def computeLoss(self, inputs, outputs, labels, truthLabels):
         return self.loss_f(inputs, outputs)+torch.nn.CrossEntropyLoss()(labels, truthLabels)
-
-    def calc_similarity(self, feats1, feats2):
-        return numpy.linalg.norm(feats1-feats2)
-        # return numpy.dot(feats1,feats2) / (numpy.linalg.norm(feats1) * numpy.linalg.norm(feats2))
 
     def fitModel(self, data, isTraining):
         image, labels, img_path = data
@@ -174,52 +170,6 @@ class Competition_AE(CompetitionModel):
             output = self.model(image)
             loss = self.computeLoss(image, output[0], output[2], labels)
         return loss
-
-    def evaluate(self, path_model):
-
-        self.model.load_state_dict(torch.load(path_model))
-        #self.fetch_outputs()
-        test_ann = utils.get_path(
-            f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
-        test_path = utils.get_path(
-            f"../../datasets/{self.dataset}/validation/query")
-
-        test_data = CustomImageDataset(
-            annotations_file=test_ann,
-            img_dir=test_path,
-            transform=self.test_transform
-        )
-
-        test_dataloader = dataloader.DataLoader(
-            test_data, batch_size=1, shuffle=True)
-
-
-        self.model.eval()
-        print("Evaluating data")
-        feats_gallery = self.scan_gallery(path_model)
-
-        images_to_plot = []
-        for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
-            image, label, file_path = data
-            with torch.no_grad():
-                image_rec, features, classes_predicted = self.model(image)
-                images_to_plot.append([image_rec,image])
-
-                class_predicted = torch.argmax(classes_predicted)
-                res = self.get_top10(
-                    features, class_predicted.item(), feats_gallery)
-                self.get_score(res, label.item())
-            # images = [Image.open(im) for im in res['path'].head(10)]
-            # images.insert(0, Image.open(file_path[0]))
-            # utils.display_images(images)
-            # print(res)
-
-        for key in self.score:
-            print(key)
-            print((self.score[key]*100) / len(test_dataloader))
-
-        print(self.score)
-
     def fetch_outputs(self):
 
         test_ann = utils.get_path(
@@ -256,25 +206,6 @@ class Competition_AE(CompetitionModel):
 
 
 
-    def get_top10(self, query_features, class_predicted, df_gallery: DataFrame):
-        top10 = pd.DataFrame(columns=['label', 'distance', 'path'])
-        for i, im in df_gallery.iterrows():
-            sim = self.calc_similarity(query_features, im['features'])
-            if(class_predicted != im['label']):
-                sim = sim + 0.3*sim
-            if(len(top10.index) < 10):
-                top10 = top10.append(pd.DataFrame({'label': [im['label']], 'distance': [
-                    sim], 'path': [im['path']]}), ignore_index=False)
-            else:
-                if(top10['distance'].iloc[-1] > sim):
-
-                    top10 = top10.head(-1)
-                    top10 = top10.append(pd.DataFrame({'label': [im['label']], 'distance': [
-                                         sim], 'path': [im['path']]}), ignore_index=False)
-            top10 = top10.sort_values(by=['distance'], ascending=True)
-        return top10
-
-
 def main(args):
     loss_function = torch.nn.MSELoss()
 
@@ -290,8 +221,6 @@ def main(args):
         tv.transforms.RandomRotation(20, resample=PIL.Image.BILINEAR),
         tv.transforms.ToPILImage(),
         tv.transforms.ToTensor(),
-        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                                0.229, 0.224, 0.225]),
         tv.transforms.Grayscale(),
     ])
 
@@ -299,14 +228,12 @@ def main(args):
         tv.transforms.Resize((112, 112)),
         tv.transforms.ToPILImage(),
         tv.transforms.ToTensor(),
-        tv.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                                0.229, 0.224, 0.225]),
         tv.transforms.Grayscale(),
     ])
 
     print(summary(net,(1,112,112)))
     model = Competition_AE(net, optimizer, loss_function, model_transform, test_transform,
-                           "cAE_revised", "scraped_fixed", 100,desired_dim = (1,112,112), channels=3)
+                           "cAE_revised", "scraped_fixed", 100,channels=3,premade=False)
 
     if(args.test != None):
         if args.test == "latest":
