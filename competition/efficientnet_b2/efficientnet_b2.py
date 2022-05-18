@@ -74,12 +74,11 @@ def main(args):
                       optimizer, loss_function, model_transform, test_transform, "efficientnet_b2", "scraped_fixed", 100, True, pretrained)
 
     if(args.test != None):
-        if not pretrained:
-            if args.test == "latest":
-                path_model = utils.get_latest_model("efficientnet_b2")
-            else:
-                path_model = utils.get_path(
-                    f"../../models/efficientnet_b2/efficientnet_b2-{args.test}.pth")
+        if args.test == "latest":
+            path_model = utils.get_latest_model("efficientnet_b2")
+        else:
+            path_model = utils.get_path(
+                f"../../models/efficientnet_b2/efficientnet_b2-{args.test}.pth")
     else:
         path_model = model.train()
     model.evaluate(path_model)

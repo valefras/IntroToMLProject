@@ -74,12 +74,11 @@ def main(args):
                       optimizer, loss_function, model_transform, test_transform, "convnext_tiny", "scraped_fixed", 100, True, pretrained)
 
     if(args.test != None):
-        if not pretrained:
-            if args.test == "latest":
-                path_model = utils.get_latest_model("convnext_tiny")
-            else:
-                path_model = utils.get_path(
-                    f"../../models/convnext_tiny/convnext_tiny-{args.test}.pth")
+        if args.test == "latest":
+            path_model = utils.get_latest_model("convnext_tiny")
+        else:
+            path_model = utils.get_path(
+                f"../../models/convnext_tiny/convnext_tiny-{args.test}.pth")
     else:
         path_model = model.train()
     model.evaluate(path_model)

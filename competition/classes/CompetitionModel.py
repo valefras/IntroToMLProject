@@ -87,9 +87,9 @@ class CompetitionModel():
             image, label, file_path = data
             with torch.no_grad():
                 if not self.premade:
-                    features_gallery.append(self.model(image)[1].numpy()[0])
+                    features_gallery.append(self.model(image)[1])
                 else:
-                    features_gallery.append(self.model(image).numpy()[0])
+                    features_gallery.append(self.model(image))
                 labels_gallery.append(label)
 
 
@@ -97,13 +97,13 @@ class CompetitionModel():
         labels_gallery = torch.cat(labels_gallery)
 
 
-        for data in tqdm(query_dataloader, desc="Extracting features from the gallery", ascii=" >>>>>>>>="):
+        for data in tqdm(query_dataloader, desc="Comparing query to gallery", ascii=" >>>>>>>>="):
             image, label, file_path = data
             with torch.no_grad():
                 if not self.premade:
-                    features_queries.append(self.model(image)[1].numpy()[0])
+                    features_queries.append(self.model(image)[1])
                 else:
-                    features_queries.append(self.model(image).numpy()[0])
+                    features_queries.append(self.model(image))
                 labels_queries.append(label)
 
         features_queries = torch.cat(features_queries)
@@ -244,7 +244,7 @@ class CompetitionModel():
         # check accuracies
         total_queries = labels_queries.size(0)
         topk = {}
-        for k in [1, 3, 5, 10]:
+        for k in [1, 5, 10]:
             # k = 1, partial rank is of size 5000, 1
             # k = 3, partial rank is of size 5000, 3
             # k = 5, partial rank is of size 5000, 5

@@ -63,12 +63,11 @@ def main(args):
             None,None,model_transform,test_transform,"resnet152","scraped_fixed",100,True,pretrained)
 
     if(args.test != None):
-        if not pretrained:
-            if args.test == "latest":
-                path_model = utils.get_latest_model("resnet152")
-            else:
-                path_model = utils.get_path(
-                    f"../../models/resnet152/resnet152-{args.test}.pth")
+        if args.test == "latest":
+            path_model = utils.get_latest_model("resnet152")
+        else:
+            path_model = utils.get_path(
+                f"../../models/resnet152/resnet152-{args.test}.pth")
     else:
         path_model = model.train()
     model.evaluate(path_model)

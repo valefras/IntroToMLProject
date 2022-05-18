@@ -23,7 +23,7 @@ def configure_subparsers(subparsers):
   Args:
   """
     parser = subparsers.add_parser(
-        "resnet50", help="Train and Test the resnet50 model")
+        "convnext_small", help="Train and Test the convnext_small model")
     parser.add_argument(
         "--test", action='store', help="Only test the model with the given weight file", type=str
     )
@@ -31,7 +31,7 @@ def configure_subparsers(subparsers):
     parser.set_defaults(func=main)
 
 
-class resnet50(CompetitionModel):
+class convnext_small(CompetitionModel):
     def __init__(self, model, optim, loss, transform, test_transform, name, dataset, epochs, premade, pretrained):
         super().__init__(model, optim, loss, transform,
                          test_transform, name, dataset, epochs, premade, pretrained)
@@ -46,7 +46,8 @@ def main(args):
         transforms.CenterCrop(224),
         transforms.ToPILImage(),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                             0.229, 0.224, 0.225]),
     ])
 
     test_transform = tv.transforms.Compose([
@@ -54,20 +55,30 @@ def main(args):
         transforms.CenterCrop(224),
         transforms.ToPILImage(),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                             0.229, 0.224, 0.225]),
     ])
-    
+
     pretrained = True
 
-    model = resnet50(torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=pretrained),
-            None,None,model_transform,test_transform,"resnet50","scraped_fixed",100,True,pretrained)
+    lr = 0.001
+
+    loss_function = torch.nn.CrossEntropyLoss()
+
+    net = tv.models.convnext_small(pretrained=True)
+
+    optimizer = torch.optim.Adam(
+        net.parameters(), lr=lr, weight_decay=1e-8)
+
+    model = convnext_small(net,
+                      optimizer, loss_function, model_transform, test_transform, "convnext_small", "scraped_fixed", 100, True, pretrained)
 
     if(args.test != None):
         if args.test == "latest":
-            path_model = utils.get_latest_model("resnet50")
+            path_model = utils.get_latest_model("convnext_small")
         else:
             path_model = utils.get_path(
-                f"../../models/resnet50/resnet50-{args.test}.pth")
+                f"../../models/convnext_small/convnext_small-{args.test}.pth")
     else:
         path_model = model.train()
     model.evaluate(path_model)
