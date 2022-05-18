@@ -48,6 +48,7 @@ class CompetitionModel():
             f"../../datasets/{self.dataset}/validation/gallery")
         gallery_ann = utils.get_path(
             f"../../datasets/{self.dataset}/validation/gallery/labels_gallery.csv")
+
         gallery_data = CustomImageDataset(
             annotations_file=gallery_ann,
             img_dir=gallery_path,
@@ -55,24 +56,60 @@ class CompetitionModel():
         )
 
         gallery_dataloader = dataloader.DataLoader(
-            gallery_data, batch_size=1, shuffle=False)
+            gallery_data, batch_size=128, shuffle=False)
+
+        test_ann = utils.get_path(
+            f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
+        test_path = utils.get_path(
+            f"../../datasets/{self.dataset}/validation/query")
+
+        test_data = CustomImageDataset(
+            annotations_file=test_ann,
+            img_dir=test_path,
+            transform=self.test_transform
+
+        )
+
+        query_dataloader = dataloader.DataLoader(
+            test_data, batch_size=128, shuffle=False)
+
 
         if not(self.premade and self.pretrained):
             self.model.load_state_dict(torch.load(path_model))
 
-        features_gallery = pd.DataFrame(columns=['label', 'features', 'path'])
+        features_gallery = []
+        labels_gallery = []
+
+        features_queries = []
+        labels_queries = []
 
         for data in tqdm(gallery_dataloader, desc="Extracting features from the gallery", ascii=" >>>>>>>>="):
             image, label, file_path = data
             with torch.no_grad():
                 if not self.premade:
-                    features_gallery = features_gallery.append(pd.DataFrame({'label': label.item(), 'features': [
-                        self.model(image)[1].numpy()[0]], 'path': file_path[0]}), ignore_index=False)
+                    features_gallery.append(self.model(image)[1].numpy()[0])
                 else:
-                    features_gallery = features_gallery.append(pd.DataFrame({'label': label.item(), 'features': [
-                        self.model(image).numpy()[0]], 'path': file_path[0]}), ignore_index=False)
+                    features_gallery.append(self.model(image).numpy()[0])
+                labels_gallery.append(label)
 
-        return features_gallery
+
+        features_gallery = torch.cat(features_gallery)
+        labels_gallery = torch.cat(labels_gallery)
+
+
+        for data in tqdm(query_dataloader, desc="Extracting features from the gallery", ascii=" >>>>>>>>="):
+            image, label, file_path = data
+            with torch.no_grad():
+                if not self.premade:
+                    features_queries.append(self.model(image)[1].numpy()[0])
+                else:
+                    features_queries.append(self.model(image).numpy()[0])
+                labels_queries.append(label)
+
+        features_queries = torch.cat(features_queries)
+        labels_queries = torch.cat(labels_queries)
+
+        return features_gallery,labels_gallery,features_queries,labels_queries
 
     def calc_similarity(self, feats1, feats2):
         # return numpy.linalg.norm(feats1 - feats2)**2 # Euclidean
@@ -187,27 +224,37 @@ class CompetitionModel():
         return self.computeLoss(image, output[0], labels)
 
     def evaluate(self, path_model=None):
-        test_ann = utils.get_path(
-            f"../../datasets/{self.dataset}/validation/query/labels_query.csv")
-        test_path = utils.get_path(
-            f"../../datasets/{self.dataset}/validation/query")
-
-        test_data = CustomImageDataset(
-            annotations_file=test_ann,
-            img_dir=test_path,
-            transform=self.test_transform
-
-        )
-
-        test_dataloader = dataloader.DataLoader(
-            test_data, batch_size=1, shuffle=True)
-
         if not(self.premade and self.pretrained):
             self.model.load_state_dict(torch.load(path_model))
 
         self.model.eval()
         print("Evaluating data")
-        feats_gallery = self.scan_gallery(path_model)
+
+        features_gallery,labels_gallery,features_queries,labels_queries = self.scan_gallery(path_model)
+
+        features_queries = F.normalize(features_queries, dim=1)
+        features_gallery = F.normalize(features_gallery, dim=1)
+        sim = features_queries @ features_gallery.T
+
+        # dist = torch.cdist(query_features, gallery_features)
+        # rank = torch.topk(-dist, dim=1, k=10)[1]
+
+        rank = torch.topk(sim, dim=1, k=10)[1]
+
+        # check accuracies
+        total_queries = labels_queries.size(0)
+        topk = {}
+        for k in [1, 3, 5, 10]:
+            # k = 1, partial rank is of size 5000, 1
+            # k = 3, partial rank is of size 5000, 3
+            # k = 5, partial rank is of size 5000, 5
+            partial_rank = rank[:, 0:k]
+            predicted_labels = labels_gallery[partial_rank]
+            # 5000, 1 vs 5000, k
+            acc = torch.sum(torch.any(labels_queries.unsqueeze(1) == predicted_labels, dim=1)) / total_queries
+            topk[k] = acc
+
+        print(topk)
 
         # for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
         #     image, label, file_path = data
@@ -215,30 +262,30 @@ class CompetitionModel():
         #         res = self.get_top10(self.model(
         #             image)[1].numpy()[0], feats_gallery)
         #         self.get_score(res, label.item())
-
-        for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
-            image, label, file_path = data
-            with torch.no_grad():
-                res = self.model(image)
-                if not self.premade:
-                    feats = res[1].numpy()[0]
-                else:
-                    feats = res.numpy()[0]
-                # utils.imshow(res[0])
-                res = self.get_top10(feats, feats_gallery)
-                self.get_score(res, label.item())
-                '''
-                images = [Image.open(im) for im in res['path'].head(10)]
-                images.insert(0, Image.open(file_path[0]))
-                utils.display_images(images)
-                '''
-
-        for key in self.score:
-            print(key)
-            print((self.score[key]*100) / len(test_dataloader))
-
-        print(self.score)
-
+        #
+        # for data in tqdm(test_dataloader, desc="Comparing gallery to query", ascii=" >>>>>>>>="):
+        #     image, label, file_path = data
+        #     with torch.no_grad():
+        #         res = self.model(image)
+        #         if not self.premade:
+        #             feats = res[1].numpy()[0]
+        #         else:
+        #             feats = res.numpy()[0]
+        #         # utils.imshow(res[0])
+        #         res = self.get_top10(feats, feats_gallery)
+        #         self.get_score(res, label.item())
+        #         '''
+        #         images = [Image.open(im) for im in res['path'].head(10)]
+        #         images.insert(0, Image.open(file_path[0]))
+        #         utils.display_images(images)
+        #         '''
+        #
+        # for key in self.score:
+        #     print(key)
+        #     print((self.score[key]*100) / len(test_dataloader))
+        #
+        # print(self.score)
+        #
     def get_score(self, top10, query_label):
         # check top 1
         top10_vals = top10.label.values
