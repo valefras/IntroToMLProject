@@ -13,6 +13,7 @@ from competition.resnet101 import resnet101
 from competition.resnet152 import resnet152
 from competition.convnext_tiny import convnext_tiny
 from competition.convnext_small import convnext_small
+from competition.efficientnet_b1 import efficientnet_b1
 from competition.efficientnet_b2 import efficientnet_b2
 
 
@@ -41,6 +42,7 @@ def get_args():
     resnet50.configure_subparsers(subparsers)
     resnet101.configure_subparsers(subparsers)
     resnet152.configure_subparsers(subparsers)
+    efficientnet_b1.configure_subparsers(subparsers)
     efficientnet_b2.configure_subparsers(subparsers)
 
     # parsing arguments
