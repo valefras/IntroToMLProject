@@ -65,7 +65,7 @@ def main(args):
 
     loss_function = torch.nn.CrossEntropyLoss()
 
-    net = tv.models.efficientnet_b1(pretrained=True)
+    net = tv.models.efficientnet_b1(pretrained=False)
 
     optimizer = torch.optim.Adam(
         net.parameters(), lr=lr, weight_decay=1e-8)
